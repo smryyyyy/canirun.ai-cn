@@ -214,7 +214,7 @@ function getGPUInfo(): { renderer: string | null; vendor: string | null } {
   }
 }
 
-function matchGPU(renderer: string): { vram: number; bw: number } | null {
+function matchGPU(renderer: string): { vram: number; bw: number; cores: number } | null {
   const upper = renderer.toUpperCase();
   for (const [name, data] of Object.entries(GPU_DB)) {
     if (upper.includes(name.toUpperCase())) return data;
@@ -222,7 +222,7 @@ function matchGPU(renderer: string): { vram: number; bw: number } | null {
   return null;
 }
 
-function matchApple(renderer: string): { ram: number; bw: number } | null {
+function matchApple(renderer: string): { ram: number; bw: number; cpuCores: number; gpuCores: number } | null {
   const lower = renderer.toLowerCase();
   for (const [chip, data] of Object.entries(APPLE_DB)) {
     if (lower.includes(chip)) return data;
@@ -590,3 +590,63 @@ export const GRADES: Record<Grade, GradeInfo> = {
   "F": { letter: "F", label: "Too heavy",   color: "#ef4444" },
   "?": { letter: "?", label: "Unknown",     color: "#56565f" },
 };
+
+// ── Hardware Overrides (localStorage) ──────────────────────
+
+const HW_OVERRIDE_KEY = "canirun-hw-overrides";
+
+export interface HardwareOverrides {
+  ramGB?: number;
+  memoryBandwidth?: number;
+  gpuCores?: number;
+}
+
+export function getHardwareOverrides(): HardwareOverrides {
+  try {
+    const raw = localStorage.getItem(HW_OVERRIDE_KEY);
+    return raw ? JSON.parse(raw) : {};
+  } catch {
+    return {};
+  }
+}
+
+export function saveHardwareOverrides(overrides: HardwareOverrides): void {
+  try {
+    const clean: HardwareOverrides = {};
+    if (overrides.ramGB !== undefined) clean.ramGB = overrides.ramGB;
+    if (overrides.memoryBandwidth !== undefined) clean.memoryBandwidth = overrides.memoryBandwidth;
+    if (overrides.gpuCores !== undefined) clean.gpuCores = overrides.gpuCores;
+    if (Object.keys(clean).length === 0) {
+      localStorage.removeItem(HW_OVERRIDE_KEY);
+    } else {
+      localStorage.setItem(HW_OVERRIDE_KEY, JSON.stringify(clean));
+    }
+  } catch {}
+}
+
+export function applyOverrides(hw: HardwareInfo, overrides?: HardwareOverrides): HardwareInfo {
+  const o = overrides ?? getHardwareOverrides();
+  if (Object.keys(o).length === 0) return hw;
+  const result = { ...hw };
+  if (o.ramGB !== undefined) {
+    result.ramGB = o.ramGB;
+    result.totalUsableRAM = o.ramGB;
+  }
+  if (o.memoryBandwidth !== undefined) {
+    result.memoryBandwidth = o.memoryBandwidth;
+  }
+  if (o.gpuCores !== undefined) {
+    result.gpuCores = o.gpuCores;
+  }
+  return result;
+}
+
+export const RAM_OPTIONS = [2, 4, 6, 8, 12, 16, 18, 24, 32, 36, 48, 64, 96, 128, 192];
+export const BW_OPTIONS = [50, 68, 100, 120, 150, 200, 224, 273, 288, 300, 360, 408, 448, 504, 546, 672, 768, 819, 960, 1008, 1792, 2039, 3350];
+export const GPU_CORES_OPTIONS = [256, 512, 1024, 2048, 3072, 4096, 5120, 6144, 7168, 8192, 9728, 10240, 10752, 14592, 16384, 18176, 21760];
+
+export function buildSelectOptions(presets: number[], detected: number | null): number[] {
+  const set = new Set(presets);
+  if (detected !== null && detected > 0) set.add(detected);
+  return Array.from(set).sort((a, b) => a - b);
+}
