@@ -1,0 +1,274 @@
+{
+  "qwen3.5-0.8b": {
+    "downloads": 406264,
+    "likes": 317
+  },
+  "llama3.2-1b": {
+    "downloads": 1613539,
+    "likes": 2309
+  },
+  "gemma3-1b": {
+    "downloads": 3284362,
+    "likes": 869
+  },
+  "tinyllama-1.1b": {
+    "downloads": 1937468,
+    "likes": 1541
+  },
+  "qwen2.5-coder-1.5b": {
+    "downloads": 1664443,
+    "likes": 109
+  },
+  "deepseek-r1-1.5b": {
+    "downloads": 1443580,
+    "likes": 1456
+  },
+  "qwen3-1.7b": {
+    "downloads": 6605906,
+    "likes": 427
+  },
+  "qwen3.5-2b": {
+    "downloads": 226953,
+    "likes": 154
+  },
+  "gemma2-2b": {
+    "downloads": 414439,
+    "likes": 1299
+  },
+  "llama3.2-3b": {
+    "downloads": 1441036,
+    "likes": 704
+  },
+  "smollm3-3b": {
+    "downloads": 126243,
+    "likes": 905
+  },
+  "phi-3.5-mini": {
+    "downloads": 600073,
+    "likes": 965
+  },
+  "phi-4-mini-reasoning": {
+    "downloads": 9183,
+    "likes": 217
+  },
+  "qwen3-4b": {
+    "downloads": 5536211,
+    "likes": 566
+  },
+  "gemma3-4b": {
+    "downloads": 2167937,
+    "likes": 1215
+  },
+  "qwen3.5-4b": {
+    "downloads": 348672,
+    "likes": 295
+  },
+  "mistral-7b": {
+    "downloads": 1565331,
+    "likes": 2452
+  },
+  "qwen2.5-7b": {
+    "downloads": 21896902,
+    "likes": 1117
+  },
+  "qwen2.5-coder-7b": {
+    "downloads": 1699848,
+    "likes": 664
+  },
+  "deepseek-r1-7b": {
+    "downloads": 671123,
+    "likes": 800
+  },
+  "llama3.1-8b": {
+    "downloads": 7297433,
+    "likes": 5537
+  },
+  "qwen3-8b": {
+    "downloads": 6533729,
+    "likes": 980
+  },
+  "ministral-8b": {
+    "downloads": 180691,
+    "likes": 574
+  },
+  "gemma2-9b": {
+    "downloads": 211721,
+    "likes": 778
+  },
+  "glm-4-9b": {
+    "downloads": 199167,
+    "likes": 703
+  },
+  "nemotron-nano-9b": {
+    "downloads": 245212,
+    "likes": 482
+  },
+  "qwen3.5-9b": {
+    "downloads": 868002,
+    "likes": 594
+  },
+  "llama3.2-11b-vision": {
+    "downloads": 272712,
+    "likes": 1572
+  },
+  "gemma3-12b": {
+    "downloads": 1473787,
+    "likes": 673
+  },
+  "mistral-nemo-12b": {
+    "downloads": 88439,
+    "likes": 1652
+  },
+  "qwen2.5-14b": {
+    "downloads": 1998042,
+    "likes": 319
+  },
+  "phi-4-14b": {
+    "downloads": 933024,
+    "likes": 2225
+  },
+  "qwen3-14b": {
+    "downloads": 2138889,
+    "likes": 379
+  },
+  "deepseek-r1-14b": {
+    "downloads": 770186,
+    "likes": 612
+  },
+  "llama4-scout-17b": {
+    "downloads": 207385,
+    "likes": 1237
+  },
+  "gpt-oss-20b": {
+    "downloads": 7323869,
+    "likes": 4436
+  },
+  "lfm2-24b": {
+    "downloads": 16510,
+    "likes": 275
+  },
+  "devstral-small-2-24b": {
+    "downloads": 445443,
+    "likes": 546
+  },
+  "mistral-small-24b": {
+    "downloads": 156458,
+    "likes": 1351
+  },
+  "gemma2-27b": {
+    "downloads": 404935,
+    "likes": 560
+  },
+  "gemma3-27b": {
+    "downloads": 1403547,
+    "likes": 1911
+  },
+  "qwen3.5-27b": {
+    "downloads": 697966,
+    "likes": 615
+  },
+  "qwen3-30b-a3b": {
+    "downloads": 1214252,
+    "likes": 861
+  },
+  "nemotron-nano-30b": {
+    "downloads": 1036676,
+    "likes": 655
+  },
+  "qwen2.5-32b": {
+    "downloads": 3012562,
+    "likes": 334
+  },
+  "qwen2.5-coder-32b": {
+    "downloads": 797058,
+    "likes": 2000
+  },
+  "qwen3-32b": {
+    "downloads": 4134411,
+    "likes": 666
+  },
+  "deepseek-r1-32b": {
+    "downloads": 948211,
+    "likes": 1526
+  },
+  "exaone-4-32b": {
+    "downloads": 16252,
+    "likes": 278
+  },
+  "olmo2-32b": {
+    "downloads": 3682,
+    "likes": 148
+  },
+  "command-r-35b": {
+    "downloads": 12074,
+    "likes": 1102
+  },
+  "qwen3.5-35b-a3b": {
+    "downloads": 1143706,
+    "likes": 1039
+  },
+  "mixtral-8x7b": {
+    "downloads": 772453,
+    "likes": 4643
+  },
+  "llama3.3-70b": {
+    "downloads": 598714,
+    "likes": 2674
+  },
+  "gpt-oss-120b": {
+    "downloads": 4362543,
+    "likes": 4549
+  },
+  "devstral-2-123b": {
+    "downloads": 17823,
+    "likes": 295
+  },
+  "qwen2.5-72b": {
+    "downloads": 581623,
+    "likes": 916
+  },
+  "qwen3.5-122b-a10b": {
+    "downloads": 253415,
+    "likes": 411
+  },
+  "mixtral-8x22b": {
+    "downloads": 16510,
+    "likes": 746
+  },
+  "llama4-maverick-17b-128e": {
+    "downloads": 5876,
+    "likes": 468
+  },
+  "qwen3-235b-a22b": {
+    "downloads": 679998,
+    "likes": 1079
+  },
+  "qwen3.5-397b-a17b": {
+    "downloads": 1444887,
+    "likes": 1263
+  },
+  "llama3.1-405b": {
+    "downloads": 174283,
+    "likes": 592
+  },
+  "qwen3-coder-480b": {
+    "downloads": 72261,
+    "likes": 1305
+  },
+  "deepseek-r1": {
+    "downloads": 1139775,
+    "likes": 13120
+  },
+  "deepseek-v3.1": {
+    "downloads": 280151,
+    "likes": 3088
+  },
+  "deepseek-v3.2": {
+    "downloads": 359779,
+    "likes": 1284
+  },
+  "kimi-k2": {
+    "downloads": 110145,
+    "likes": 2324
+  }
+}
