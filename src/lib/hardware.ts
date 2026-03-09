@@ -87,6 +87,70 @@ const GPU_DB: Record<string, { vram: number; bw: number; cores: number }> = {
   "RX 6700 XT": { vram: 12, bw: 384, cores: 2560 },
   "Arc A770": { vram: 16, bw: 560, cores: 4096 },
   "Arc A750": { vram: 8, bw: 512, cores: 3584 },
+  "Arc A580": { vram: 8, bw: 512, cores: 3072 },
+  "Arc A380": { vram: 6, bw: 186, cores: 1024 },
+
+  // GTX 16 series
+  "GTX 1660 Ti": { vram: 6, bw: 288, cores: 1536 },
+  "GTX 1660 SUPER": { vram: 6, bw: 336, cores: 1408 },
+  "GTX 1660": { vram: 6, bw: 192, cores: 1408 },
+  "GTX 1650 SUPER": { vram: 4, bw: 192, cores: 1280 },
+  "GTX 1650 Ti": { vram: 4, bw: 192, cores: 1024 },
+  "GTX 1650": { vram: 4, bw: 128, cores: 896 },
+  "GTX 1630": { vram: 4, bw: 96, cores: 512 },
+
+  // GTX 10 series
+  "GTX 1080 Ti": { vram: 11, bw: 484, cores: 3584 },
+  "GTX 1080": { vram: 8, bw: 320, cores: 2560 },
+  "GTX 1070 Ti": { vram: 8, bw: 256, cores: 2432 },
+  "GTX 1070": { vram: 8, bw: 256, cores: 1920 },
+  "GTX 1060 6GB": { vram: 6, bw: 192, cores: 1280 },
+  "GTX 1060 3GB": { vram: 3, bw: 192, cores: 1152 },
+  "GTX 1060": { vram: 6, bw: 192, cores: 1280 },
+  "GTX 1050 Ti": { vram: 4, bw: 112, cores: 768 },
+  "GTX 1050": { vram: 2, bw: 112, cores: 640 },
+
+  // GTX 9 series
+  "GTX 980 Ti": { vram: 6, bw: 336, cores: 2816 },
+  "GTX 980": { vram: 4, bw: 224, cores: 2048 },
+  "GTX 970": { vram: 4, bw: 224, cores: 1664 },
+  "GTX 960": { vram: 2, bw: 112, cores: 1024 },
+  "GTX 950": { vram: 2, bw: 105, cores: 768 },
+
+  // NVIDIA Quadro / professional
+  "Quadro RTX 8000": { vram: 48, bw: 672, cores: 4608 },
+  "Quadro RTX 6000": { vram: 24, bw: 672, cores: 4608 },
+  "Quadro RTX 5000": { vram: 16, bw: 448, cores: 3072 },
+  "Quadro RTX 4000": { vram: 8, bw: 416, cores: 2304 },
+  "RTX A2000": { vram: 6, bw: 288, cores: 3328 },
+
+  // AMD RX 5xxx (RDNA 1)
+  "RX 5700 XT": { vram: 8, bw: 448, cores: 2560 },
+  "RX 5700": { vram: 8, bw: 448, cores: 2304 },
+  "RX 5600 XT": { vram: 6, bw: 288, cores: 2304 },
+  "RX 5500 XT": { vram: 8, bw: 224, cores: 1408 },
+
+  // AMD RX 500 series (Polaris)
+  "RX 590": { vram: 8, bw: 256, cores: 2304 },
+  "RX 580": { vram: 8, bw: 256, cores: 2304 },
+  "RX 570": { vram: 4, bw: 224, cores: 2048 },
+  "RX 560": { vram: 4, bw: 112, cores: 1024 },
+
+  // AMD RX Vega
+  "Vega 64": { vram: 8, bw: 484, cores: 4096 },
+  "Vega 56": { vram: 8, bw: 410, cores: 3584 },
+
+  // AMD RX 9xxx (RDNA 4)
+  "RX 9070 XT": { vram: 16, bw: 650, cores: 4096 },
+  "RX 9070": { vram: 16, bw: 540, cores: 3584 },
+
+  // Intel integrated
+  "Iris Xe": { vram: 0, bw: 68, cores: 96 },
+  "Iris Plus": { vram: 0, bw: 50, cores: 64 },
+  "UHD 770": { vram: 0, bw: 76, cores: 32 },
+  "UHD 730": { vram: 0, bw: 76, cores: 24 },
+  "UHD Graphics 630": { vram: 0, bw: 42, cores: 24 },
+  "UHD Graphics 620": { vram: 0, bw: 34, cores: 24 },
 };
 
 const APPLE_DB: Record<string, { ram: number; bw: number; cpuCores: number; gpuCores: number }> = {
@@ -489,6 +553,162 @@ async function estimateBandwidthFromWebGPU(adapter: any): Promise<number | null>
   }
 }
 
+function estimateBandwidthFromWebGL(): number | null {
+  try {
+    const canvas = document.createElement("canvas");
+    const size = 2048;
+    canvas.width = size;
+    canvas.height = size;
+    const gl = canvas.getContext("webgl2");
+    if (!gl) return null;
+
+    const READS = 32;
+    const vsSource = `#version 300 es
+      in vec2 a_pos;
+      out vec2 v_uv;
+      void main() {
+        gl_Position = vec4(a_pos, 0.0, 1.0);
+        v_uv = a_pos * 0.5 + 0.5;
+      }`;
+    const fsSource = `#version 300 es
+      precision highp float;
+      uniform sampler2D u_tex;
+      in vec2 v_uv;
+      out vec4 o;
+      void main() {
+        vec4 s = vec4(0.0);
+        float step = 1.0 / ${size}.0;
+        for (int i = 0; i < ${READS}; i++) {
+          s += texture(u_tex, fract(v_uv + vec2(float(i) * step, float(i) * step * 0.73)));
+        }
+        o = s * ${(1 / READS).toFixed(6)};
+      }`;
+
+    const compile = (type: number, src: string) => {
+      const s = gl.createShader(type)!;
+      gl.shaderSource(s, src);
+      gl.compileShader(s);
+      return gl.getShaderParameter(s, gl.COMPILE_STATUS) ? s : null;
+    };
+    const vs = compile(gl.VERTEX_SHADER, vsSource);
+    const fs = compile(gl.FRAGMENT_SHADER, fsSource);
+    if (!vs || !fs) return null;
+
+    const prog = gl.createProgram()!;
+    gl.attachShader(prog, vs);
+    gl.attachShader(prog, fs);
+    gl.linkProgram(prog);
+    if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) return null;
+
+    const buf = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]), gl.STATIC_DRAW);
+    const loc = gl.getAttribLocation(prog, "a_pos");
+    gl.enableVertexAttribArray(loc);
+    gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
+
+    const tex = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, tex);
+    const texData = new Uint8Array(size * size * 4);
+    for (let i = 0; i < texData.length; i++) texData[i] = (i * 7 + 13) & 0xff;
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA8, size, size, 0, gl.RGBA, gl.UNSIGNED_BYTE, texData);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT);
+
+    const rt = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, rt);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA8, size, size, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+    const fb = gl.createFramebuffer();
+    gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
+    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, rt, 0);
+
+    gl.useProgram(prog);
+    gl.activeTexture(gl.TEXTURE0);
+    gl.bindTexture(gl.TEXTURE_2D, tex);
+    gl.uniform1i(gl.getUniformLocation(prog, "u_tex"), 0);
+    gl.viewport(0, 0, size, size);
+
+    gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+    gl.finish();
+
+    const passes = 10;
+    const start = performance.now();
+    for (let i = 0; i < passes; i++) gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+    gl.finish();
+    const elapsed = performance.now() - start;
+
+    gl.deleteTexture(tex);
+    gl.deleteTexture(rt);
+    gl.deleteFramebuffer(fb);
+    gl.deleteProgram(prog);
+    gl.deleteShader(vs);
+    gl.deleteShader(fs);
+    gl.deleteBuffer(buf);
+
+    const bytesRead = size * size * READS * 4 * passes;
+    const bytesWritten = size * size * 4 * passes;
+    const measuredGBs = (bytesRead + bytesWritten) / elapsed / 1e6;
+    // WebGL fragment shaders typically achieve ~30-45% of peak HW bandwidth
+    const estimated = Math.round(measuredGBs / 0.35);
+
+    if (estimated < 15 || estimated > 4000) return null;
+    return estimated;
+  } catch {
+    return null;
+  }
+}
+
+function estimateBandwidthHeuristic(
+  renderer: string | null,
+  vendor: string | null,
+  vram: number | null,
+  platform: string | null,
+): number | null {
+  if (!renderer && !vendor) return null;
+  const upper = (renderer || "").toUpperCase();
+  const v = (vendor || "").toUpperCase();
+
+  const isNvidia = v.includes("NVIDIA") || upper.includes("NVIDIA") || upper.includes("GEFORCE");
+  const isAmd = v.includes("AMD") || v.includes("ATI") || upper.includes("RADEON");
+  const isIntel = v.includes("INTEL") || upper.includes("INTEL");
+
+  if (isIntel && (upper.includes("UHD") || upper.includes("IRIS") || upper.includes("HD GRAPHICS"))) {
+    return 50;
+  }
+
+  if (isNvidia) {
+    if (upper.includes("RTX")) {
+      if (vram && vram >= 20) return 700;
+      if (vram && vram >= 12) return 450;
+      if (vram && vram >= 8) return 300;
+      return 250;
+    }
+    if (upper.includes("GTX")) {
+      if (vram && vram >= 8) return 250;
+      if (vram && vram >= 4) return 150;
+      return 112;
+    }
+    if (vram && vram >= 8) return 300;
+    return 150;
+  }
+
+  if (isAmd) {
+    if (upper.includes("RADEON GRAPHICS") || upper.includes("RADEON(TM) GRAPHICS")) {
+      return 55;
+    }
+    if (vram && vram >= 16) return 500;
+    if (vram && vram >= 8) return 300;
+    if (vram && vram >= 4) return 180;
+    return 150;
+  }
+
+  // Generic fallback: assume DDR5 dual-channel for desktop
+  if (platform === "Windows" || platform === "Linux") return 60;
+  return null;
+}
+
 function estimateVRAMFromWebGPU(adapter: any): number | null {
   try {
     const maxBuffer = adapter.limits?.maxBufferSize;
@@ -577,9 +797,18 @@ export async function detectHardware(): Promise<HardwareInfo> {
     }
   }
 
-  // Fallback: estimate bandwidth via WebGPU copy benchmark
+  // Fallback chain for bandwidth estimation:
+  // 1. WebGPU copy benchmark (most accurate)
   if (!memoryBandwidth && webgpuInfo.adapter) {
     memoryBandwidth = await estimateBandwidthFromWebGPU(webgpuInfo.adapter);
+  }
+  // 2. WebGL2 texture-read benchmark
+  if (!memoryBandwidth) {
+    memoryBandwidth = estimateBandwidthFromWebGL();
+  }
+  // 3. Heuristic based on GPU vendor, name, and VRAM
+  if (!memoryBandwidth) {
+    memoryBandwidth = estimateBandwidthHeuristic(renderer, vendor, estimatedVRAM ?? parsedVRAM, platform);
   }
 
   return {
