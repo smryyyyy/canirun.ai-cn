@@ -10,16 +10,16 @@
     "scrape": "bun run scripts/scrape-models.ts"
   },
   "dependencies": {
-    "@astrojs/sitemap": "^3.7.0",
-    "@resvg/resvg-js": "^2.6.2",
-    "@tailwindcss/vite": "^4.2.1",
-    "@zumer/snapdom": "^2.0.2",
-    "astro": "^5.17.1",
-    "geist": "^1.7.0",
-    "satori": "^0.25.0",
-    "tailwindcss": "^4.2.1"
+    "@astrojs/sitemap": "3.7.1",
+    "@resvg/resvg-js": "2.6.2",
+    "@tailwindcss/vite": "4.2.1",
+    "@zumer/snapdom": "2.0.2",
+    "astro": "6.0.4",
+    "geist": "1.7.0",
+    "satori": "0.25.0",
+    "tailwindcss": "4.2.1"
   },
   "devDependencies": {
-    "@webgpu/types": "^0.1.69"
+    "@webgpu/types": "0.1.69"
   }
 }
