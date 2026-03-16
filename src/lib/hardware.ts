@@ -82,8 +82,11 @@ export const GPU_DB: Record<string, { vram: number; bw: number; cores: number }>
   "RTX 3060 Laptop": { vram: 6, bw: 336, cores: 3840 },
   "RTX 3050 Ti Laptop": { vram: 4, bw: 192, cores: 2560 },
   "RTX 3050 Laptop": { vram: 4, bw: 192, cores: 2048 },
+  "RTX PRO 6000": { vram: 96, bw: 1792, cores: 24064 },
+  "RTX 6000 Ada": { vram: 48, bw: 960, cores: 18176 },
   "RTX A6000": { vram: 48, bw: 768, cores: 10752 },
   "RTX A5000": { vram: 24, bw: 768, cores: 8192 },
+  "RTX 4500 Ada": { vram: 24, bw: 432, cores: 7680 },
   "RTX A4000": { vram: 16, bw: 448, cores: 6144 },
 
   // RTX 20 series - importantes
@@ -101,9 +104,12 @@ export const GPU_DB: Record<string, { vram: number; bw: number; cores: number }>
 
   "A100": { vram: 80, bw: 2039, cores: 6912 },
   "H100": { vram: 80, bw: 3350, cores: 14592 },
+  "GH200": { vram: 96, bw: 4000, cores: 16896 },
+  "DGX Spark": { vram: 128, bw: 273, cores: 6144 },
   "L40S": { vram: 48, bw: 864, cores: 18176 },
   "L4": { vram: 24, bw: 300, cores: 7424 },
   "T4": { vram: 16, bw: 300, cores: 2560 },
+  "Tesla P40": { vram: 24, bw: 346, cores: 3840 },
   "RX 7900 XTX": { vram: 24, bw: 960, cores: 6144 },
   "RX 7900 XT": { vram: 20, bw: 800, cores: 5376 },
   "RX 7800 XT": { vram: 16, bw: 624, cores: 3840 },
@@ -171,6 +177,7 @@ export const GPU_DB: Record<string, { vram: number; bw: number; cores: number }>
   "RX 560": { vram: 4, bw: 112, cores: 1024 },
 
   // AMD RX Vega
+  "Radeon VII": { vram: 16, bw: 1024, cores: 3840 },
   "Vega 64": { vram: 8, bw: 484, cores: 4096 },
   "Vega 56": { vram: 8, bw: 410, cores: 3584 },
 
@@ -192,6 +199,7 @@ export const GPU_DB: Record<string, { vram: number; bw: number; cores: number }>
   "RX 6500M": { vram: 4, bw: 144, cores: 1024 },
 
   // AMD Integrated GPUs (Ryzen APUs)
+  "Ryzen AI MAX+ 395": { vram: 96, bw: 256, cores: 2560 },
   "Radeon 890M": { vram: 0, bw: 89, cores: 1024 },
   "Radeon 880M": { vram: 0, bw: 89, cores: 768 },
   "Radeon 780M": { vram: 0, bw: 89, cores: 768 },
@@ -274,10 +282,20 @@ export const MOBILE_GPU_DB: Record<string, { bw: number; ram?: number }> = {
   "Xclipse 940": { bw: 51 },
   "Xclipse 930": { bw: 44 },
   "Xclipse 920": { bw: 38 },
+  "Tensor G5": { bw: 56, ram: 16 },
   "Tensor G4": { bw: 51, ram: 12 },
   "Tensor G3": { bw: 51, ram: 8 },
   "Tensor G2": { bw: 44, ram: 8 },
   "Tensor G1": { bw: 35, ram: 8 },
+};
+
+// ── SBC / Embedded Database ────────────────────────────────
+
+export const SBC_DB: Record<string, { ram: number; bw: number }> = {
+  "Raspberry Pi 5 (8 GB)": { ram: 8, bw: 32 },
+  "Raspberry Pi 5 (4 GB)": { ram: 4, bw: 32 },
+  "Raspberry Pi 4 (8 GB)": { ram: 8, bw: 13 },
+  "Raspberry Pi 4 (4 GB)": { ram: 4, bw: 13 },
 };
 
 // ── iOS Device Detection ──────────────────────────────────
@@ -313,6 +331,7 @@ function detectIOSDevice(cpuBenchmark: number): MobileDeviceInfo {
   // Estimate chip generation from CPU benchmark + screen tier
   if (cpuBenchmark > 115) return { name: `iPhone${suffix} (A19 Pro)`, ram: 8, bw: 77, cpuCores: 6, gpuCores: 6, isTablet: false };
   if (cpuBenchmark > 105) return { name: `iPhone${suffix} (A18 Pro)`, ram: 8, bw: 68, cpuCores: 6, gpuCores: 6, isTablet: false };
+  if (cpuBenchmark > 97) return { name: `iPhone${suffix} (A18)`, ram: 8, bw: 60, cpuCores: 6, gpuCores: 5, isTablet: false };
   if (cpuBenchmark > 90) return { name: `iPhone${suffix} (A17 Pro)`, ram: 8, bw: 68, cpuCores: 6, gpuCores: 6, isTablet: false };
   if (cpuBenchmark > 75) return { name: `iPhone (A16)`, ram: isPro ? 8 : 6, bw: 51, cpuCores: 6, gpuCores: 5, isTablet: false };
   if (cpuBenchmark > 60) return { name: `iPhone (A15)`, ram: 6, bw: 51, cpuCores: 6, gpuCores: 5, isTablet: false };
@@ -1133,11 +1152,24 @@ export function getDeviceOverrides(deviceKey: string): HardwareOverrides | null 
       isMobile: true,
     };
   }
+  if (deviceKey.startsWith("sbc:")) {
+    const name = deviceKey.slice(4);
+    const data = SBC_DB[name];
+    if (!data) return null;
+    return {
+      device: deviceKey,
+      ramGB: data.ram,
+      memoryBandwidth: data.bw,
+      isAppleSilicon: false,
+      isMobile: false,
+      estimatedVRAM: null,
+    };
+  }
   return null;
 }
 
-export const RAM_OPTIONS = [2, 4, 6, 8, 12, 16, 18, 24, 32, 36, 48, 64, 96, 128, 192];
-export const BW_OPTIONS = [50, 68, 100, 120, 150, 153, 200, 224, 273, 288, 300, 307, 360, 408, 448, 504, 546, 614, 672, 768, 819, 960, 1008, 1792, 2039, 3350];
+export const RAM_OPTIONS = [2, 4, 6, 8, 12, 16, 18, 24, 32, 36, 48, 64, 96, 128, 192, 256, 384, 512];
+export const BW_OPTIONS = [50, 68, 100, 120, 150, 153, 200, 224, 256, 273, 288, 300, 307, 346, 360, 408, 432, 448, 504, 546, 614, 672, 768, 819, 960, 1008, 1024, 1792, 2039, 3350, 4000];
 export function buildSelectOptions(presets: number[], detected: number | null): number[] {
   const set = new Set(presets);
   if (detected !== null && detected > 0) set.add(detected);
@@ -1151,8 +1183,8 @@ export function getGPUCategory(name: string): string {
   if (name.startsWith("RTX 40")) return "NVIDIA RTX 40";
   if (name.startsWith("RTX 30")) return "NVIDIA RTX 30";
   if (name.startsWith("RTX 20")) return "NVIDIA RTX 20";
-  if (name.startsWith("RTX A") || name.startsWith("Quadro")) return "NVIDIA Pro";
-  if (/^(A100|H100|L40S|L4|T4)$/.test(name)) return "NVIDIA Datacenter";
+  if (name.startsWith("RTX PRO") || name.startsWith("RTX 6000") || name.startsWith("RTX 4500") || name.startsWith("RTX A") || name.startsWith("Quadro")) return "NVIDIA Pro";
+  if (/^(A100|H100|GH200|DGX Spark|L40S|L4|T4|Tesla P40)$/.test(name)) return "NVIDIA Datacenter";
   if (name.startsWith("GTX 16")) return "NVIDIA GTX 16";
   if (name.startsWith("GTX 10")) return "NVIDIA GTX 10";
   if (name.startsWith("GTX 9")) return "NVIDIA GTX 9";
@@ -1160,7 +1192,8 @@ export function getGPUCategory(name: string): string {
   if (name.startsWith("RX 7")) return "AMD RX 7000";
   if (name.startsWith("RX 6")) return "AMD RX 6000";
   if (name.startsWith("RX 5")) return "AMD RX 5000";
-  if (name.startsWith("Radeon") || /^Vega \d$/.test(name)) return "AMD Integrated";
+  if (name === "Radeon VII") return "AMD Older";
+  if (name.startsWith("Radeon") || name.startsWith("Ryzen") || /^Vega \d$/.test(name)) return "AMD Integrated";
   if (name.startsWith("RX") || name.startsWith("Vega")) return "AMD Older";
   if (name.startsWith("Arc")) return "Intel Arc";
   if (name.startsWith("Iris") || name.startsWith("UHD")) return "Intel Integrated";
@@ -1171,5 +1204,5 @@ export const DEVICE_CATEGORY_ORDER = [
   "Apple Silicon", "NVIDIA RTX 50", "NVIDIA RTX 40", "NVIDIA RTX 30", "NVIDIA RTX 20",
   "NVIDIA GTX 16", "NVIDIA GTX 10", "NVIDIA GTX 9", "NVIDIA Pro", "NVIDIA Datacenter",
   "AMD RX 9000", "AMD RX 7000", "AMD RX 6000", "AMD RX 5000", "AMD Older", "AMD Integrated",
-  "Intel Arc", "Intel Integrated", "Mobile",
+  "Intel Arc", "Intel Integrated", "Mobile", "SBC / Embedded",
 ];

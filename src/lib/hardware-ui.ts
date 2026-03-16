@@ -2,6 +2,7 @@ import {
   GPU_DB,
   APPLE_DB,
   MOBILE_GPU_DB,
+  SBC_DB,
   getGPUCategory,
   DEVICE_CATEGORY_ORDER,
   buildSelectOptions,
@@ -86,6 +87,12 @@ export function buildGroupedDeviceOptions(): Record<string, DeviceOption[]> {
     if (!grouped[cat]) grouped[cat] = [];
     const label = data.ram ? `${name} (${data.ram} GB)` : name;
     grouped[cat].push({ value: `mobile:${name}`, label });
+  }
+
+  for (const [name, data] of Object.entries(SBC_DB)) {
+    const cat = "SBC / Embedded";
+    if (!grouped[cat]) grouped[cat] = [];
+    grouped[cat].push({ value: `sbc:${name}`, label: `${name} — ${data.ram} GB` });
   }
 
   return grouped;
