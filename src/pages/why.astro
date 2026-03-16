@@ -299,47 +299,47 @@ const codeHF = `<span class="text-muted">// Fetch model stats from HuggingFace A
       <section>
         <h2 class="mb-3 font-pixel text-sm text-primary">Grade scale</h2>
         <p class="mb-3 text-sm leading-relaxed text-secondary">
-          The final score maps to a letter grade:
+          The final score maps to a status label:
         </p>
         <div class="overflow-x-auto rounded-lg border border-edge">
           <table class="w-full text-sm">
             <thead>
               <tr class="border-b border-edge bg-surface-card text-left text-[10px] uppercase tracking-wider text-muted">
-                <th class="px-4 py-2.5">Grade</th>
+                <th class="px-4 py-2.5">Status</th>
                 <th class="px-4 py-2.5">Score</th>
                 <th class="px-4 py-2.5">Meaning</th>
               </tr>
             </thead>
             <tbody class="text-xs">
               <tr class="border-b border-edge/50 bg-surface-card/50">
-                <td class="px-4 py-2 font-pixel text-sm" style="color: #22c55e">S</td>
+                <td class="px-4 py-2 font-mono text-xs font-medium uppercase tracking-wider" style="color: #22c55e">Runs great</td>
                 <td class="px-4 py-2 font-mono text-secondary">85–100</td>
-                <td class="px-4 py-2 text-secondary">Runs great — fast inference, plenty of headroom</td>
+                <td class="px-4 py-2 text-secondary">Fast inference, plenty of headroom</td>
               </tr>
               <tr class="border-b border-edge/50">
-                <td class="px-4 py-2 font-pixel text-sm" style="color: #4ade80">A</td>
+                <td class="px-4 py-2 font-mono text-xs font-medium uppercase tracking-wider" style="color: #4ade80">Runs well</td>
                 <td class="px-4 py-2 font-mono text-secondary">70–84</td>
-                <td class="px-4 py-2 text-secondary">Runs well — good speed, comfortable fit</td>
+                <td class="px-4 py-2 text-secondary">Good speed, comfortable fit</td>
               </tr>
               <tr class="border-b border-edge/50 bg-surface-card/50">
-                <td class="px-4 py-2 font-pixel text-sm" style="color: #a3e635">B</td>
+                <td class="px-4 py-2 font-mono text-xs font-medium uppercase tracking-wider" style="color: #a3e635">Decent</td>
                 <td class="px-4 py-2 font-mono text-secondary">55–69</td>
-                <td class="px-4 py-2 text-secondary">Decent — usable but not ideal</td>
+                <td class="px-4 py-2 text-secondary">Usable but not ideal</td>
               </tr>
               <tr class="border-b border-edge/50">
-                <td class="px-4 py-2 font-pixel text-sm" style="color: #f59e0b">C</td>
+                <td class="px-4 py-2 font-mono text-xs font-medium uppercase tracking-wider" style="color: #f59e0b">Tight fit</td>
                 <td class="px-4 py-2 font-mono text-secondary">40–54</td>
-                <td class="px-4 py-2 text-secondary">Tight fit — slow, limited context window</td>
+                <td class="px-4 py-2 text-secondary">Slow, limited context window</td>
               </tr>
               <tr class="border-b border-edge/50 bg-surface-card/50">
-                <td class="px-4 py-2 font-pixel text-sm" style="color: #f97316">D</td>
+                <td class="px-4 py-2 font-mono text-xs font-medium uppercase tracking-wider" style="color: #f97316">Barely runs</td>
                 <td class="px-4 py-2 font-mono text-secondary">20–39</td>
-                <td class="px-4 py-2 text-secondary">Barely runs — expect very slow output</td>
+                <td class="px-4 py-2 text-secondary">Expect very slow output</td>
               </tr>
               <tr>
-                <td class="px-4 py-2 font-pixel text-sm" style="color: #ef4444">F</td>
+                <td class="px-4 py-2 font-mono text-xs font-medium uppercase tracking-wider" style="color: #ef4444">Too heavy</td>
                 <td class="px-4 py-2 font-mono text-secondary">0–19</td>
-                <td class="px-4 py-2 text-secondary">Too heavy — won't fit in your memory</td>
+                <td class="px-4 py-2 text-secondary">Won't fit in your memory</td>
               </tr>
             </tbody>
           </table>

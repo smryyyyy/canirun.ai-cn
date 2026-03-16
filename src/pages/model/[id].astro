@@ -333,9 +333,9 @@ const USE_CASE_ICONS: Record<string, any> = {
                       <td class="px-4 py-2">
                         <span
                           data-quant-status
-                          class="inline-flex items-center gap-1 font-mono text-muted"
+                          class="font-mono text-[10px] font-medium uppercase tracking-wider text-muted"
                         >
-                          <span class="h-1.5 w-1.5 rounded-full bg-muted/30" />—
+                          —
                         </span>
                       </td>
                     </tr>
@@ -591,7 +591,8 @@ const USE_CASE_ICONS: Record<string, any> = {
         const info = GRADES[grade]
         const statusEl = row.querySelector("[data-quant-status]") as HTMLElement
         if (statusEl) {
-          statusEl.innerHTML = `<span class="h-1.5 w-1.5 rounded-full shrink-0" style="background-color:${info.color}"></span>${info.label}${toksPerSec ? ` · ~${toksPerSec} t/s` : ""}`
+          statusEl.textContent = `${info.label}${toksPerSec ? ` · ~${toksPerSec} t/s` : ""}`
+          statusEl.style.color = info.color
         }
       })
     }
@@ -653,11 +654,9 @@ const USE_CASE_ICONS: Record<string, any> = {
         ${bwRow}
         <div class="mt-2 flex items-center justify-between border-t border-edge pt-2">
           <span class="text-muted">Q4_K_M</span>
-          <span class="inline-flex items-center gap-1.5" style="color:${info.color}">
-            <span class="h-1.5 w-1.5 rounded-full" style="background-color:${info.color}"></span>
-            <span class="font-pixel text-xs">${info.letter}</span>
+          <span class="inline-flex items-center gap-1.5 font-mono text-[10px] font-medium uppercase tracking-wider" style="color:${info.color}">
             ${info.label}
-            ${toks ? `<span class="text-muted">· ~${toks} t/s</span>` : ""}
+            ${toks ? `<span class="text-muted normal-case">· ~${toks} t/s</span>` : ""}
           </span>
         </div>
       `

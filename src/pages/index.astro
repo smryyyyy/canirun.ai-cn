@@ -114,30 +114,30 @@ function timeAgo(dateStr: string | null): string {
 
     <!-- Summary counters — grade distribution -->
     <div id="summary-bar" class="mb-8 invisible">
-      <div class="flex items-center justify-center gap-4 font-mono text-[11px] sm:gap-6">
+      <div class="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 font-mono text-[10px] sm:text-[11px] sm:gap-x-5">
         <span class="flex items-center gap-1" style="color: var(--color-can-run)">
-          <span class="font-pixel text-xs">S</span>
           <span id="count-s" class="font-bold">0</span>
+          <span class="font-medium uppercase tracking-wide">Runs great</span>
         </span>
         <span class="flex items-center gap-1" style="color: var(--color-grade-a)">
-          <span class="font-pixel text-xs">A</span>
           <span id="count-a" class="font-bold">0</span>
+          <span class="font-medium uppercase tracking-wide">Runs well</span>
         </span>
         <span class="flex items-center gap-1" style="color: var(--color-grade-b)">
-          <span class="font-pixel text-xs">B</span>
           <span id="count-b" class="font-bold">0</span>
+          <span class="font-medium uppercase tracking-wide">Decent</span>
         </span>
         <span class="flex items-center gap-1" style="color: var(--color-maybe)">
-          <span class="font-pixel text-xs">C</span>
           <span id="count-c" class="font-bold">0</span>
+          <span class="font-medium uppercase tracking-wide">Tight fit</span>
         </span>
         <span class="flex items-center gap-1" style="color: var(--color-grade-d)">
-          <span class="font-pixel text-xs">D</span>
           <span id="count-d" class="font-bold">0</span>
+          <span class="font-medium uppercase tracking-wide">Barely runs</span>
         </span>
         <span class="flex items-center gap-1" style="color: var(--color-cannot-run)">
-          <span class="font-pixel text-xs">F</span>
           <span id="count-f" class="font-bold">0</span>
+          <span class="font-medium uppercase tracking-wide">Too heavy</span>
         </span>
       </div>
     </div>
@@ -313,14 +313,8 @@ function timeAgo(dateStr: string | null): string {
               </div>
             </div>
             <div data-card-footer class="mt-auto flex items-center justify-between px-4 pb-3">
-              <span class="inline-flex items-center gap-1.5">
-                <span data-status-dot class="h-2 w-2 shrink-0 rounded-full bg-muted/30 transition-colors"></span>
-                <span data-status-label class="font-mono text-[9px] font-medium uppercase tracking-wider text-muted"></span>
-              </span>
-              <span class="flex flex-col items-center">
-                <span data-score class="font-pixel text-lg leading-none text-muted"></span>
-                <span data-score-num class="font-mono text-[9px] text-muted/50"></span>
-              </span>
+              <span data-status-label class="font-mono text-[10px] font-medium uppercase tracking-wider text-muted"></span>
+              <span data-score-num class="font-mono text-[10px] text-muted/50"></span>
             </div>
           </article>
         </a>
@@ -433,14 +427,8 @@ function timeAgo(dateStr: string | null): string {
               </div>
             </div>
             <div data-card-footer class="mt-auto flex items-center justify-between px-4 pb-3">
-              <span class="inline-flex items-center gap-1.5">
-                <span data-status-dot class="h-2 w-2 shrink-0 rounded-full bg-muted/30 transition-colors"></span>
-                <span data-status-label class="font-mono text-[9px] font-medium uppercase tracking-wider text-muted"></span>
-              </span>
-              <span class="flex flex-col items-center">
-                <span data-score class="font-pixel text-lg leading-none text-muted"></span>
-                <span data-score-num class="font-mono text-[9px] text-muted/50"></span>
-              </span>
+              <span data-status-label class="font-mono text-[10px] font-medium uppercase tracking-wider text-muted"></span>
+              <span data-score-num class="font-mono text-[10px] text-muted/50"></span>
             </div>
           </article>
         </a>
@@ -626,10 +614,6 @@ function timeAgo(dateStr: string | null): string {
     const { status, toksPerSec: toks, memPct, score, grade } = evaluateModelComplete(vram, hw, params);
     const gradeInfo = GRADES[grade];
 
-    // Status dot — use grade color
-    const dot = card.querySelector<HTMLElement>("[data-status-dot]");
-    if (dot) dot.style.backgroundColor = gradeInfo.color;
-
     // Status label — show grade label (bottom left)
     const label = card.querySelector<HTMLElement>("[data-status-label]");
     if (label) {
@@ -637,13 +621,7 @@ function timeAgo(dateStr: string | null): string {
       label.style.color = gradeInfo.color;
     }
 
-    // Grade letter — bottom right, large, full opacity
-    const scoreEl = card.querySelector<HTMLElement>("[data-score]");
-    if (scoreEl) {
-      scoreEl.textContent = gradeInfo.letter;
-      scoreEl.style.color = gradeInfo.color;
-    }
-    // Numerical score below grade
+    // Numerical score (bottom right)
     const scoreNumEl = card.querySelector<HTMLElement>("[data-score-num]");
     if (scoreNumEl) {
       scoreNumEl.textContent = `${score}/100`;
@@ -1208,7 +1186,6 @@ function timeAgo(dateStr: string | null): string {
   }
 
   @media (max-width: 1023px) {
-    .model-card.list-mode [data-status-dot],
     .model-card.list-mode [data-status-label] {
       display: none !important;
     }
