@@ -81,10 +81,11 @@ export function buildGroupedDeviceOptions(): Record<string, DeviceOption[]> {
     grouped[cat].push({ value: `gpu:${name}`, label: `${name} (${data.vram} GB)` });
   }
 
-  for (const [name] of Object.entries(MOBILE_GPU_DB)) {
+  for (const [name, data] of Object.entries(MOBILE_GPU_DB)) {
     const cat = "Mobile";
     if (!grouped[cat]) grouped[cat] = [];
-    grouped[cat].push({ value: `mobile:${name}`, label: name });
+    const label = data.ram ? `${name} (${data.ram} GB)` : name;
+    grouped[cat].push({ value: `mobile:${name}`, label });
   }
 
   return grouped;

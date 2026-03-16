@@ -527,6 +527,7 @@ function timeAgo(dateStr: string | null): string {
     const ramSelect = $<HTMLSelectElement>("#hw-ram-select");
     if (ramSelect && effectiveRam) {
       populateSelect(ramSelect, RAM_OPTIONS, detectedHW.ramGB, overrides.ramGB ?? effectiveRam, (v) => `${v} GB`);
+      ramSelect.disabled = false;
     }
     $("#hw-ram")!.classList.replace("text-muted", "text-secondary");
 

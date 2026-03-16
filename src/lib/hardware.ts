@@ -219,7 +219,6 @@ export const APPLE_DB: Record<string, { ram: number; bw: number; cpuCores: numbe
   "m5 max": { ram: 36, bw: 614, cpuCores: 18, gpuCores: 40 },
   "m5 pro": { ram: 24, bw: 307, cpuCores: 18, gpuCores: 20 },
   "m5": { ram: 16, bw: 153, cpuCores: 10, gpuCores: 10 },
-  "m4 ultra": { ram: 192, bw: 819, cpuCores: 28, gpuCores: 60 },
   "m4 max": { ram: 36, bw: 546, cpuCores: 12, gpuCores: 32 },
   "m4 pro": { ram: 24, bw: 273, cpuCores: 12, gpuCores: 18 },
   "m4": { ram: 16, bw: 120, cpuCores: 10, gpuCores: 10 },
@@ -239,7 +238,7 @@ export const APPLE_DB: Record<string, { ram: number; bw: number; cpuCores: numbe
 
 // ── Mobile GPU Database (Android) ──────────────────────────
 
-export const MOBILE_GPU_DB: Record<string, { bw: number }> = {
+export const MOBILE_GPU_DB: Record<string, { bw: number; ram?: number }> = {
   "Adreno 830": { bw: 90 },
   "Adreno 750": { bw: 77 },
   "Adreno 740": { bw: 62 },
@@ -275,6 +274,10 @@ export const MOBILE_GPU_DB: Record<string, { bw: number }> = {
   "Xclipse 940": { bw: 51 },
   "Xclipse 930": { bw: 44 },
   "Xclipse 920": { bw: 38 },
+  "Tensor G4": { bw: 51, ram: 12 },
+  "Tensor G3": { bw: 51, ram: 8 },
+  "Tensor G2": { bw: 44, ram: 8 },
+  "Tensor G1": { bw: 35, ram: 8 },
 };
 
 // ── iOS Device Detection ──────────────────────────────────
@@ -1124,6 +1127,7 @@ export function getDeviceOverrides(deviceKey: string): HardwareOverrides | null 
     if (!data) return null;
     return {
       device: deviceKey,
+      ramGB: data.ram,
       memoryBandwidth: data.bw,
       isAppleSilicon: false,
       isMobile: true,
