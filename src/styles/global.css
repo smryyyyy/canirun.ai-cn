@@ -186,16 +186,11 @@ html.light {
 /* ── Custom Tooltip ──────────────────────────────────── */
 
 [data-tooltip] {
-  position: relative;
   cursor: help;
 }
 
-[data-tooltip]::after {
-  content: attr(data-tooltip);
-  position: absolute;
-  bottom: calc(100% + 8px);
-  left: 50%;
-  transform: translateX(-50%) translateY(4px);
+.tooltip-popup {
+  position: fixed;
   padding: 6px 10px;
   border-radius: 8px;
   background: color-mix(in srgb, var(--color-surface-card) 92%, transparent);
@@ -213,74 +208,43 @@ html.light {
   max-width: 260px;
   pointer-events: none;
   opacity: 0;
-  visibility: hidden;
+  transform: translateY(4px);
   transition:
     opacity 0.2s cubic-bezier(0.16, 1, 0.3, 1),
-    transform 0.2s cubic-bezier(0.16, 1, 0.3, 1),
-    visibility 0s 0.2s;
-  z-index: 50;
+    transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  z-index: 9999;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
 }
 
-[data-tooltip]::before {
-  content: "";
+.tooltip-popup.tooltip-bottom {
+  transform: translateY(-4px);
+}
+
+.tooltip-popup.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.tooltip-arrow {
   position: absolute;
-  bottom: calc(100% + 3px);
   left: 50%;
   transform: translateX(-50%);
   border: 5px solid transparent;
-  border-top-color: var(--color-edge);
   pointer-events: none;
-  opacity: 0;
-  visibility: hidden;
-  transition:
-    opacity 0.2s cubic-bezier(0.16, 1, 0.3, 1),
-    visibility 0s 0.2s;
-  z-index: 51;
 }
 
-[data-tooltip]:hover::after,
-[data-tooltip]:focus::after {
-  opacity: 1;
-  visibility: visible;
-  transform: translateX(-50%) translateY(0);
-  transition:
-    opacity 0.2s cubic-bezier(0.16, 1, 0.3, 1),
-    transform 0.2s cubic-bezier(0.16, 1, 0.3, 1),
-    visibility 0s;
+.tooltip-arrow-top {
+  bottom: -10px;
+  border-top-color: var(--color-edge);
 }
 
-[data-tooltip]:hover::before,
-[data-tooltip]:focus::before {
-  opacity: 1;
-  visibility: visible;
-  transition:
-    opacity 0.2s cubic-bezier(0.16, 1, 0.3, 1),
-    visibility 0s;
-}
-
-/* Bottom position variant */
-[data-tooltip-pos="bottom"]::after {
-  bottom: auto;
-  top: calc(100% + 8px);
-  transform: translateX(-50%) translateY(-4px);
-}
-
-[data-tooltip-pos="bottom"]::before {
-  bottom: auto;
-  top: calc(100% + 3px);
-  border-top-color: transparent;
+.tooltip-arrow-bottom {
+  top: -10px;
   border-bottom-color: var(--color-edge);
 }
 
-[data-tooltip-pos="bottom"]:hover::after,
-[data-tooltip-pos="bottom"]:focus::after {
-  transform: translateX(-50%) translateY(0);
-}
-
 @media (prefers-reduced-motion: reduce) {
-  [data-tooltip]::after,
-  [data-tooltip]::before {
+  .tooltip-popup {
     transition-duration: 0.01ms !important;
   }
 }
