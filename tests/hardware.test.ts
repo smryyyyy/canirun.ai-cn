@@ -377,7 +377,7 @@ describe("matchApple", () => {
     const result = matchApple("Apple M3 Max");
     expect(result).not.toBeNull();
     expect(result!.ram).toBe(APPLE_DB["m3 max"].ram);
-    expect(result!.bw).toBe(408);
+    expect(result!.bw).toBe(APPLE_DB["m3 max"].bw);
   });
 
   it("matches M1 basic", () => {
