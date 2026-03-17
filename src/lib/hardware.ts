@@ -7,6 +7,8 @@ export interface HardwareInfo {
   ramGB: number | null;
   estimatedVRAM: number | null;
   memoryBandwidth: number | null;
+  systemRAM: number | null;
+  deviceMemoryRaw: number | null;
   webgpu: boolean;
   webgpuDevice: string | null;
   webgpuArch: string | null;
@@ -18,7 +20,7 @@ export interface HardwareInfo {
   deviceName: string | null;
 }
 
-export type ModelStatus = "can-run" | "tight" | "cannot-run" | "unknown";
+export type ModelStatus = "can-run" | "tight" | "can-run-slow" | "cannot-run" | "unknown";
 export type Grade = "S" | "A" | "B" | "C" | "D" | "F" | "?";
 
 export interface GradeInfo {
@@ -84,10 +86,19 @@ export const GPU_DB: Record<string, { vram: number; bw: number; cores: number }>
   "RTX 3050 Laptop": { vram: 4, bw: 192, cores: 2048 },
   "RTX PRO 6000": { vram: 96, bw: 1792, cores: 24064 },
   "RTX 6000 Ada": { vram: 48, bw: 960, cores: 18176 },
-  "RTX A6000": { vram: 48, bw: 768, cores: 10752 },
-  "RTX A5000": { vram: 24, bw: 768, cores: 8192 },
+  "RTX 5880 Ada": { vram: 48, bw: 960, cores: 14080 },
+  "RTX 5000 Ada": { vram: 32, bw: 576, cores: 12800 },
   "RTX 4500 Ada": { vram: 24, bw: 432, cores: 7680 },
+  "RTX 4000 SFF Ada": { vram: 20, bw: 360, cores: 6144 },
+  "RTX 4000 Ada": { vram: 20, bw: 360, cores: 6144 },
+  "RTX 3500 Ada": { vram: 12, bw: 288, cores: 5120 },
+  "RTX 2000 Ada": { vram: 16, bw: 224, cores: 2816 },
+  "RTX A6000": { vram: 48, bw: 768, cores: 10752 },
+  "RTX A5500": { vram: 24, bw: 768, cores: 10240 },
+  "RTX A5000": { vram: 24, bw: 768, cores: 8192 },
+  "RTX A4500": { vram: 20, bw: 640, cores: 7168 },
   "RTX A4000": { vram: 16, bw: 448, cores: 6144 },
+  "RTX A2000": { vram: 6, bw: 288, cores: 3328 },
 
   // RTX 20 series - importantes
   "RTX 2080 Ti": { vram: 11, bw: 616, cores: 4352 },
@@ -157,12 +168,11 @@ export const GPU_DB: Record<string, { vram: number; bw: number; cores: number }>
   "GTX 960": { vram: 2, bw: 112, cores: 1024 },
   "GTX 950": { vram: 2, bw: 105, cores: 768 },
 
-  // NVIDIA Quadro / professional
+  // NVIDIA Quadro / professional (Turing)
   "Quadro RTX 8000": { vram: 48, bw: 672, cores: 4608 },
   "Quadro RTX 6000": { vram: 24, bw: 672, cores: 4608 },
   "Quadro RTX 5000": { vram: 16, bw: 448, cores: 3072 },
   "Quadro RTX 4000": { vram: 8, bw: 416, cores: 2304 },
-  "RTX A2000": { vram: 6, bw: 288, cores: 3328 },
 
   // AMD RX 5xxx (RDNA 1)
   "RX 5700 XT": { vram: 8, bw: 448, cores: 2560 },
@@ -227,12 +237,12 @@ export const APPLE_DB: Record<string, { ram: number; bw: number; cpuCores: numbe
   "m5 max": { ram: 36, bw: 614, cpuCores: 18, gpuCores: 40 },
   "m5 pro": { ram: 24, bw: 307, cpuCores: 18, gpuCores: 20 },
   "m5": { ram: 16, bw: 153, cpuCores: 10, gpuCores: 10 },
-  "m4 max": { ram: 36, bw: 546, cpuCores: 12, gpuCores: 32 },
-  "m4 pro": { ram: 24, bw: 273, cpuCores: 12, gpuCores: 18 },
+  "m4 max": { ram: 36, bw: 546, cpuCores: 16, gpuCores: 32 },
+  "m4 pro": { ram: 24, bw: 273, cpuCores: 14, gpuCores: 18 },
   "m4": { ram: 16, bw: 120, cpuCores: 10, gpuCores: 10 },
   "m3 ultra": { ram: 64, bw: 819, cpuCores: 24, gpuCores: 60 },
-  "m3 max": { ram: 36, bw: 408, cpuCores: 14, gpuCores: 30 },
-  "m3 pro": { ram: 18, bw: 150, cpuCores: 11, gpuCores: 14 },
+  "m3 max": { ram: 36, bw: 408, cpuCores: 16, gpuCores: 30 },
+  "m3 pro": { ram: 18, bw: 150, cpuCores: 12, gpuCores: 14 },
   "m3": { ram: 8, bw: 100, cpuCores: 8, gpuCores: 10 },
   "m2 ultra": { ram: 64, bw: 819, cpuCores: 24, gpuCores: 60 },
   "m2 max": { ram: 32, bw: 408, cpuCores: 12, gpuCores: 30 },
@@ -240,7 +250,7 @@ export const APPLE_DB: Record<string, { ram: number; bw: number; cpuCores: numbe
   "m2": { ram: 8, bw: 100, cpuCores: 8, gpuCores: 10 },
   "m1 ultra": { ram: 64, bw: 819, cpuCores: 20, gpuCores: 48 },
   "m1 max": { ram: 32, bw: 408, cpuCores: 10, gpuCores: 24 },
-  "m1 pro": { ram: 16, bw: 200, cpuCores: 8, gpuCores: 14 },
+  "m1 pro": { ram: 16, bw: 200, cpuCores: 10, gpuCores: 14 },
   "m1": { ram: 8, bw: 68, cpuCores: 8, gpuCores: 7 },
 };
 
@@ -347,6 +357,70 @@ function matchMobileGPU(renderer: string): { name: string; bw: number } | null {
   return null;
 }
 
+// ── Apple Silicon identification (Safari fallback) ────────
+// Safari hides the specific chip name, so we identify it by comparing measured
+// hardware signals against known APPLE_DB entries using weighted scoring.
+
+function identifyAppleChip(signals: {
+  measuredBW: number | null;
+  estimatedRAM: number | null;
+  estimatedGPUCores: number | null;
+  cpuBenchmark: number;
+  cpuCores: number;
+}): string | null {
+  const { measuredBW, estimatedRAM, estimatedGPUCores, cpuBenchmark, cpuCores } = signals;
+  const hasGPUSignals = estimatedRAM !== null || estimatedGPUCores !== null;
+
+  let bestChip: string | null = null;
+  let bestScore = -1;
+
+  for (const [chip, data] of Object.entries(APPLE_DB)) {
+    let score = 0;
+
+    // Bandwidth — strongest when from WebGPU (accurate), nearly useless from WebGL
+    // on Safari (Metal backend has very different efficiency than Chrome/ANGLE's 0.35)
+    if (measuredBW !== null) {
+      const ratio = measuredBW / data.bw;
+      const bwWeight = hasGPUSignals ? 35 : 3;
+      score += bwWeight * Math.max(0, 1 - Math.abs(1 - ratio));
+    }
+
+    // RAM from WebGPU maxBufferSize
+    if (estimatedRAM !== null) {
+      const ratio = estimatedRAM / data.ram;
+      score += 25 * Math.max(0, 1 - Math.abs(1 - ratio));
+    }
+
+    // GPU cores from WebGPU compute benchmark
+    if (estimatedGPUCores !== null) {
+      const ratio = estimatedGPUCores / data.gpuCores;
+      score += 20 * Math.max(0, 1 - Math.abs(1 - ratio));
+    }
+
+    // CPU cores from navigator.hardwareConcurrency — most reliable signal in Safari
+    if (cpuCores > 0) {
+      const diff = Math.abs(cpuCores - data.cpuCores);
+      score += 20 * Math.max(0, 1 - diff / 8);
+    }
+
+    // CPU benchmark → chip generation (M1≈67, M2≈82, M3≈95, M4≈107, M5≈120)
+    const gen = parseInt(chip.match(/m(\d)/)?.[1] || "0");
+    if (gen > 0 && cpuBenchmark > 0) {
+      const centers: Record<number, number> = { 1: 67, 2: 82, 3: 95, 4: 107, 5: 120 };
+      const center = centers[gen] ?? 67;
+      const diff = Math.abs(cpuBenchmark - center);
+      score += Math.max(0, 10 - diff * 0.4);
+    }
+
+    if (score > bestScore) {
+      bestScore = score;
+      bestChip = chip;
+    }
+  }
+
+  return bestScore > 5 ? bestChip : null;
+}
+
 // ── Detection ──────────────────────────────────────────────
 
 function getGPUInfo(): { renderer: string | null; vendor: string | null } {
@@ -355,17 +429,23 @@ function getGPUInfo(): { renderer: string | null; vendor: string | null } {
     const gl = canvas.getContext("webgl2") || canvas.getContext("webgl");
     if (!gl) return { renderer: null, vendor: null };
     const ext = gl.getExtension("WEBGL_debug_renderer_info");
-    if (!ext) return { renderer: null, vendor: null };
+    if (ext) {
+      return {
+        renderer: gl.getParameter(ext.UNMASKED_RENDERER_WEBGL),
+        vendor: gl.getParameter(ext.UNMASKED_VENDOR_WEBGL),
+      };
+    }
+    // Fallback for browsers that block WEBGL_debug_renderer_info (Safari 16.4+)
     return {
-      renderer: gl.getParameter(ext.UNMASKED_RENDERER_WEBGL),
-      vendor: gl.getParameter(ext.UNMASKED_VENDOR_WEBGL),
+      renderer: gl.getParameter(gl.RENDERER),
+      vendor: gl.getParameter(gl.VENDOR),
     };
   } catch {
     return { renderer: null, vendor: null };
   }
 }
 
-function matchGPU(renderer: string): { vram: number; bw: number; cores: number } | null {
+export function matchGPU(renderer: string): { vram: number; bw: number; cores: number } | null {
   const upper = renderer.toUpperCase().replace(/\(TM\)/g, "").replace(/\s+/g, " ").trim();
   let best: { vram: number; bw: number; cores: number } | null = null;
   let bestLen = 0;
@@ -378,7 +458,7 @@ function matchGPU(renderer: string): { vram: number; bw: number; cores: number }
   return best;
 }
 
-function parseVRAMFromName(renderer: string): number | null {
+export function parseVRAMFromName(renderer: string): number | null {
   const m = renderer.match(/\((\d+)\s*GB\)/i) || renderer.match(/\b(\d+)\s*GB\b/i);
   if (m) {
     const gb = parseInt(m[1], 10);
@@ -387,7 +467,7 @@ function parseVRAMFromName(renderer: string): number | null {
   return null;
 }
 
-function matchApple(renderer: string): { ram: number; bw: number; cpuCores: number; gpuCores: number } | null {
+export function matchApple(renderer: string): { ram: number; bw: number; cpuCores: number; gpuCores: number } | null {
   const lower = renderer.toLowerCase();
   for (const [chip, data] of Object.entries(APPLE_DB)) {
     if (lower.includes(chip)) return data;
@@ -396,7 +476,7 @@ function matchApple(renderer: string): { ram: number; bw: number; cpuCores: numb
   return null;
 }
 
-function isAppleSiliconCheck(renderer: string): boolean {
+export function isAppleSiliconCheck(renderer: string): boolean {
   const r = renderer.toLowerCase();
   return r.includes("apple") && (r.includes("m1") || r.includes("m2") || r.includes("m3") || r.includes("m4") || r.includes("m5") || r.includes("gpu"));
 }
@@ -833,9 +913,16 @@ export async function detectHardware(): Promise<HardwareInfo> {
 
   let isApple = renderer ? isAppleSiliconCheck(renderer) : false;
   const gpuMatch = renderer ? matchGPU(renderer) : null;
-  const appleMatch = renderer ? matchApple(renderer) : null;
+  let appleMatch = renderer ? matchApple(renderer) : null;
   const parsedVRAM = renderer ? parseVRAMFromName(renderer) : null;
   const isMobile = platform === "iOS" || platform === "Android";
+
+  // Safari hides specific chip names (returns "Apple GPU") — defer identification
+  // until WebGPU/WebGL benchmarks provide real hardware measurements
+  const rendererHasSpecificChip = renderer ? /\bm[1-9]\b/i.test(renderer) : false;
+  const deferAppleId = platform === "macOS" && !rendererHasSpecificChip
+    && (isApple || vendor?.toLowerCase().includes("apple") === true);
+  if (deferAppleId) isApple = true;
 
   let totalUsableRAM: number | null = null;
   let estimatedVRAM: number | null = null;
@@ -858,7 +945,7 @@ export async function detectHardware(): Promise<HardwareInfo> {
     }
     totalUsableRAM = deviceMemory;
     isApple = false;
-  } else if (isApple && appleMatch) {
+  } else if (isApple && appleMatch && !deferAppleId) {
     totalUsableRAM = appleMatch.ram;
     memoryBandwidth = appleMatch.bw;
     gpuCores = appleMatch.gpuCores;
@@ -903,6 +990,41 @@ export async function detectHardware(): Promise<HardwareInfo> {
     memoryBandwidth = estimateBandwidthHeuristic(renderer, vendor, estimatedVRAM ?? parsedVRAM, platform);
   }
 
+  // Deferred Apple Silicon identification — now we have real measurements
+  if (deferAppleId) {
+    let ramSignal: number | null = null;
+    if (webgpuInfo.adapter) {
+      ramSignal = estimateVRAMFromWebGPU(webgpuInfo.adapter);
+    }
+
+    const chipName = identifyAppleChip({
+      measuredBW: memoryBandwidth,
+      estimatedRAM: ramSignal,
+      estimatedGPUCores: gpuCores,
+      cpuBenchmark,
+      cpuCores: navigator.hardwareConcurrency || 0,
+    });
+
+    if (chipName && APPLE_DB[chipName]) {
+      const data = APPLE_DB[chipName];
+      totalUsableRAM = data.ram;
+      memoryBandwidth = data.bw;
+      gpuCores = data.gpuCores;
+      deviceName = "Apple " + chipName.split(" ").map(w => w[0].toUpperCase() + w.slice(1)).join(" ");
+    }
+  }
+
+  // Apple Silicon: unified memory, no offloading possible
+  // navigator.deviceMemory caps at 8 — we can only distinguish ≥8 GB vs <8 GB
+  let systemRAM: number | null;
+  if (isApple || isMobile) {
+    systemRAM = null;
+  } else if (deviceMemory != null) {
+    systemRAM = deviceMemory >= 8 ? 16 : 4;
+  } else {
+    systemRAM = 16;
+  }
+
   return {
     gpuRenderer: renderer,
     gpuVendor: vendor,
@@ -910,6 +1032,8 @@ export async function detectHardware(): Promise<HardwareInfo> {
     ramGB: totalUsableRAM,
     estimatedVRAM,
     memoryBandwidth,
+    systemRAM,
+    deviceMemoryRaw: deviceMemory,
     webgpu: webgpuInfo.supported,
     webgpuDevice: webgpuInfo.device,
     webgpuArch: webgpuInfo.arch,
@@ -942,6 +1066,13 @@ export function evaluateModel(vramNeeded: number, hw: HardwareInfo): ModelStatus
   if (hw.estimatedVRAM) {
     if (vramNeeded <= hw.estimatedVRAM * 0.85) return "can-run";
     if (vramNeeded <= hw.estimatedVRAM * 1.1) return "tight";
+    // Doesn't fit in VRAM — check CPU offloading via system RAM
+    if (hw.systemRAM && hw.systemRAM > hw.estimatedVRAM) {
+      const usableRAM = hw.systemRAM * 0.70;
+      const totalOffload = hw.estimatedVRAM + usableRAM;
+      if (vramNeeded <= totalOffload) return "can-run-slow";
+    }
+    return "cannot-run";
   }
   if (hw.totalUsableRAM) {
     const usable = hw.totalUsableRAM * 0.7;
@@ -952,24 +1083,42 @@ export function evaluateModel(vramNeeded: number, hw: HardwareInfo): ModelStatus
   return "unknown";
 }
 
+const SYSTEM_RAM_BW_GBS = 50; // DDR5 dual-channel ~50 GB/s
+
 export function estimateTokensPerSecond(modelVRAM: number, hw: HardwareInfo): number | null {
   if (!hw.memoryBandwidth) return null;
   let efficiency: number;
   if (hw.isMobile && !hw.isAppleSilicon) {
-    efficiency = 0.40; // thermal throttling + shared bus contention
+    efficiency = 0.40;
   } else if (hw.isAppleSilicon) {
     efficiency = 0.65;
   } else {
     efficiency = 0.70;
   }
+
+  // If model needs offloading (exceeds VRAM but fits in VRAM+RAM)
+  if (hw.estimatedVRAM && modelVRAM > hw.estimatedVRAM && hw.systemRAM) {
+    const fractionVRAM = Math.min(1, hw.estimatedVRAM / modelVRAM);
+    const fractionRAM = 1 - fractionVRAM;
+    // Harmonic weighted mean — bottlenecked by the slower path
+    const effectiveBW = 1 / (fractionVRAM / hw.memoryBandwidth + fractionRAM / SYSTEM_RAM_BW_GBS);
+    const toks = (effectiveBW / modelVRAM) * efficiency * 0.85; // extra penalty for PCIe transfer overhead
+    return Math.max(1, Math.round(toks));
+  }
+
   const toks = (hw.memoryBandwidth / modelVRAM) * efficiency;
   return Math.round(toks);
 }
 
 export function memoryPercentage(vramNeeded: number, hw: HardwareInfo): number | null {
-  const total = (hw.isMobile || hw.isAppleSilicon) ? hw.totalUsableRAM : (hw.estimatedVRAM || hw.totalUsableRAM);
-  if (!total) return null;
-  return Math.round((vramNeeded / total) * 100);
+  if (hw.isMobile || hw.isAppleSilicon) {
+    if (!hw.totalUsableRAM) return null;
+    return Math.round((vramNeeded / hw.totalUsableRAM) * 100);
+  }
+  const vram = hw.estimatedVRAM || hw.totalUsableRAM;
+  if (!vram) return null;
+  // If offloading, show % of VRAM (will be >100%)
+  return Math.round((vramNeeded / vram) * 100);
 }
 
 function lerp(x: number, x0: number, x1: number, y0: number, y1: number): number {
@@ -1005,7 +1154,7 @@ export function computeScore(status: ModelStatus, toksPerSec: number | null, par
   // Quality bonus
   const qualityBonus = Math.min(12, Math.log2(paramsBillions + 1) * 2);
 
-  const fitMultiplier = status === "tight" ? 0.75 : 1;
+  const fitMultiplier = status === "can-run-slow" ? 0.60 : status === "tight" ? 0.75 : 1;
 
   return Math.round(((speedScore * 0.55 + headroomScore * 0.35 + qualityBonus) * fitMultiplier));
 }
@@ -1013,6 +1162,10 @@ export function computeScore(status: ModelStatus, toksPerSec: number | null, par
 export function scoreToGrade(score: number, status: ModelStatus): Grade {
   if (status === "cannot-run") return "F";
   if (status === "unknown") return "?";
+  if (status === "can-run-slow") {
+    if (score >= 40) return "C";
+    return "D";
+  }
   if (score >= 85) return "S";
   if (score >= 70) return "A";
   if (score >= 55) return "B";
@@ -1061,6 +1214,7 @@ const HW_OVERRIDE_KEY = "canirun-hw-overrides";
 export interface HardwareOverrides {
   device?: string;
   ramGB?: number;
+  systemRAM?: number;
   memoryBandwidth?: number;
   gpuCores?: number;
   isAppleSilicon?: boolean;
@@ -1082,6 +1236,7 @@ export function saveHardwareOverrides(overrides: HardwareOverrides): void {
     const clean: HardwareOverrides = {};
     if (overrides.device !== undefined) clean.device = overrides.device;
     if (overrides.ramGB !== undefined) clean.ramGB = overrides.ramGB;
+    if (overrides.systemRAM !== undefined) clean.systemRAM = overrides.systemRAM;
     if (overrides.memoryBandwidth !== undefined) clean.memoryBandwidth = overrides.memoryBandwidth;
     if (overrides.gpuCores !== undefined) clean.gpuCores = overrides.gpuCores;
     if (overrides.isAppleSilicon !== undefined) clean.isAppleSilicon = overrides.isAppleSilicon;
@@ -1106,6 +1261,7 @@ export function applyOverrides(hw: HardwareInfo, overrides?: HardwareOverrides):
     result.ramGB = o.ramGB;
     result.totalUsableRAM = o.ramGB;
   }
+  if (o.systemRAM !== undefined) result.systemRAM = o.systemRAM;
   if (o.memoryBandwidth !== undefined) result.memoryBandwidth = o.memoryBandwidth;
   if (o.gpuCores !== undefined) result.gpuCores = o.gpuCores;
   return result;
@@ -1138,6 +1294,7 @@ export function getDeviceOverrides(deviceKey: string): HardwareOverrides | null 
       isAppleSilicon: false,
       isMobile: false,
       estimatedVRAM: data.vram,
+      systemRAM: 16,
     };
   }
   if (deviceKey.startsWith("mobile:")) {
@@ -1169,6 +1326,7 @@ export function getDeviceOverrides(deviceKey: string): HardwareOverrides | null 
 }
 
 export const RAM_OPTIONS = [2, 4, 6, 8, 12, 16, 18, 24, 32, 36, 48, 64, 96, 128, 192, 256, 384, 512];
+export const SYSTEM_RAM_OPTIONS = [4, 8, 16, 32, 48, 64, 96, 128, 192, 256, 384, 512, 768, 1024];
 export const BW_OPTIONS = [50, 68, 100, 120, 150, 153, 200, 224, 256, 273, 288, 300, 307, 346, 360, 408, 432, 448, 504, 546, 614, 672, 768, 819, 960, 1008, 1024, 1792, 2039, 3350, 4000];
 export function buildSelectOptions(presets: number[], detected: number | null): number[] {
   const set = new Set(presets);
@@ -1179,12 +1337,13 @@ export function buildSelectOptions(presets: number[], detected: number | null): 
 // ── GPU Categories (for device selector UI) ───────────────
 
 export function getGPUCategory(name: string): string {
+  // Pro/workstation cards must be checked BEFORE consumer series (e.g. "RTX 5000 Ada" vs "RTX 5090")
+  if (name.includes("Ada") || name.startsWith("RTX PRO") || name.startsWith("RTX 6000") || name.startsWith("RTX 4500") || name.startsWith("RTX A") || name.startsWith("Quadro")) return "NVIDIA Pro";
+  if (/^(A100|H100|GH200|DGX Spark|L40S|L4|T4|Tesla P40)$/.test(name)) return "NVIDIA Datacenter";
   if (name.startsWith("RTX 50")) return "NVIDIA RTX 50";
   if (name.startsWith("RTX 40")) return "NVIDIA RTX 40";
   if (name.startsWith("RTX 30")) return "NVIDIA RTX 30";
   if (name.startsWith("RTX 20")) return "NVIDIA RTX 20";
-  if (name.startsWith("RTX PRO") || name.startsWith("RTX 6000") || name.startsWith("RTX 4500") || name.startsWith("RTX A") || name.startsWith("Quadro")) return "NVIDIA Pro";
-  if (/^(A100|H100|GH200|DGX Spark|L40S|L4|T4|Tesla P40)$/.test(name)) return "NVIDIA Datacenter";
   if (name.startsWith("GTX 16")) return "NVIDIA GTX 16";
   if (name.startsWith("GTX 10")) return "NVIDIA GTX 10";
   if (name.startsWith("GTX 9")) return "NVIDIA GTX 9";
