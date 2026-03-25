@@ -1,68 +1,95 @@
 ---
-import Footer from "@/components/Footer.astro";
-import { models, isCommercialLicense, getLicenseTier, LICENSE_LIST } from "@/data/models";
-import { getLicenseSlug } from "@/data/licenses";
-import IconCpu from "@/icons/cpu.svg";
-import IconRam from "@/icons/ram.svg";
-import IconGpu from "@/icons/gpu.svg";
-import IconBandwidth from "@/icons/bandwidth.svg";
-import IconSearch from "@/icons/search.svg";
-import IconGrid from "@/icons/grid.svg";
-import IconGridDots from "@/icons/grid-dots.svg";
-import IconList from "@/icons/list.svg";
-import IconMoe from "@/icons/moe.svg";
-import IconTool from "@/icons/tool.svg";
-import IconThinking from "@/icons/thinking.svg";
-import IconVision from "@/icons/vision.svg";
-import IconStar from "@/icons/star.svg";
-import IconLicense from "@/icons/license.svg";
-import { getModelTitleTransitionName } from "@/lib/view-transitions";
+import Footer from "@/components/Footer.astro"
+import {
+  models,
+  isCommercialLicense,
+  getLicenseTier,
+  LICENSE_LIST,
+} from "@/data/models"
+import { getLicenseSlug } from "@/data/licenses"
+import hfStats from "@/data/hf-stats.json"
+import IconCpu from "@/icons/cpu.svg"
+import IconRam from "@/icons/ram.svg"
+import IconGpu from "@/icons/gpu.svg"
+import IconBandwidth from "@/icons/bandwidth.svg"
+import IconSearch from "@/icons/search.svg"
+import IconGrid from "@/icons/grid.svg"
+import IconGridDots from "@/icons/grid-dots.svg"
+import IconList from "@/icons/list.svg"
+import IconMoe from "@/icons/moe.svg"
+import IconTool from "@/icons/tool.svg"
+import IconThinking from "@/icons/thinking.svg"
+import IconVision from "@/icons/vision.svg"
+import IconStar from "@/icons/star.svg"
+import IconLicense from "@/icons/license.svg"
+import { getModelTitleTransitionName } from "@/lib/view-transitions"
 
 interface Props {
-  deviceKey?: string;
+  deviceKey?: string
 }
 
-const { deviceKey } = Astro.props;
+const { deviceKey } = Astro.props
+
+const hfStatsTyped = hfStats as Record<
+  string,
+  { downloads: number; likes: number }
+>
 
 const sortedModels = [...models].sort(
-  (a, b) => a.paramsBillions - b.paramsBillions
-);
-const featuredModels = sortedModels.filter((m) => m.featured);
-const otherModels = sortedModels.filter((m) => !m.featured);
+  (a, b) => a.paramsBillions - b.paramsBillions,
+)
+const featuredModels = sortedModels.filter((m) => m.featured)
+const otherModels = sortedModels.filter((m) => !m.featured)
 
-const providers = [...new Set(models.map((m) => m.provider))].sort();
+const providers = [...new Set(models.map((m) => m.provider))].sort()
 
 function timeAgo(dateStr: string | null): string {
-  if (!dateStr) return "";
-  const now = new Date();
-  const date = new Date(dateStr + "-01");
-  const diffMs = now.getTime() - date.getTime();
-  const days = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-  if (days < 0) return "upcoming";
-  if (days === 0) return "today";
-  if (days === 1) return "1 day ago";
-  if (days < 30) return `${days}d ago`;
-  const months = Math.floor(days / 30);
-  if (months === 1) return "1 month ago";
-  if (months < 12) return `${months}mo ago`;
-  const years = Math.floor(months / 12);
-  if (years === 1) return "1 year ago";
-  return `${years}y ago`;
+  if (!dateStr) return ""
+  const now = new Date()
+  const date = new Date(dateStr + "-01")
+  const diffMs = now.getTime() - date.getTime()
+  const days = Math.floor(diffMs / (1000 * 60 * 60 * 24))
+  if (days < 0) return "upcoming"
+  if (days === 0) return "today"
+  if (days === 1) return "1 day ago"
+  if (days < 30) return `${days}d ago`
+  const months = Math.floor(days / 30)
+  if (months === 1) return "1 month ago"
+  if (months < 12) return `${months}mo ago`
+  const years = Math.floor(months / 12)
+  if (years === 1) return "1 year ago"
+  return `${years}y ago`
 }
 ---
 
-<main id="results" class="mx-auto max-w-6xl px-4 pb-20 pt-10 sm:px-6" data-device-key={deviceKey}>
+<main
+  id="results"
+  class="mx-auto max-w-6xl px-4 pb-20 pt-10 sm:px-6"
+  data-device-key={deviceKey}
+>
   <!-- Page-specific header -->
   <slot name="header" />
 
   <!-- Hardware Panel — fixed height to prevent CLS -->
   <section id="hw-panel" class="mb-10 min-h-[52px]">
-    <div id="hw-bar" class="flex flex-wrap items-center justify-center gap-x-4 gap-y-1.5 font-mono text-sm text-secondary">
+    <div
+      id="hw-bar"
+      class="flex flex-wrap items-center justify-center gap-x-4 gap-y-1.5 font-mono text-sm text-secondary"
+    >
       <!-- GPU -->
       <span id="hw-gpu" class="inline-flex items-center gap-1.5 text-muted">
-        <span data-tooltip="GPU detected via browser APIs — this is an estimate, actual specs may differ" data-tooltip-pos="bottom" tabindex="0" aria-label="GPU info" class="inline-flex shrink-0 flex-col items-center gap-1">
+        <span
+          data-tooltip="GPU detected via browser APIs — this is an estimate, actual specs may differ"
+          data-tooltip-pos="bottom"
+          tabindex="0"
+          aria-label="GPU info"
+          class="inline-flex shrink-0 flex-col items-center gap-1"
+        >
           <IconGpu class="h-4 w-4 text-muted" />
-          <span class="-mt-px text-[8px] uppercase tracking-widest text-muted leading-none">GPU</span>
+          <span
+            class="-mt-px text-[8px] uppercase tracking-widest text-muted leading-none"
+            >GPU</span
+          >
         </span>
         <select id="hw-device-select" class="hw-editable-select" disabled>
           <option value="">detecting...</option>
@@ -71,9 +98,19 @@ function timeAgo(dateStr: string | null): string {
       <span class="text-edge/40">|</span>
       <!-- VRAM -->
       <span id="hw-ram" class="inline-flex items-center gap-1.5 text-muted">
-        <span data-tooltip="VRAM — Video memory available for loading models. On Apple Silicon/iGPUs, it's shared with system RAM" data-tooltip-pos="bottom" tabindex="0" aria-label="VRAM info" class="inline-flex shrink-0 flex-col items-center gap-1">
+        <span
+          data-tooltip="VRAM — Video memory available for loading models. On Apple Silicon/iGPUs, it's shared with system RAM"
+          data-tooltip-pos="bottom"
+          tabindex="0"
+          aria-label="VRAM info"
+          class="inline-flex shrink-0 flex-col items-center gap-1"
+        >
           <IconRam class="h-4 w-4 text-muted" />
-          <span id="hw-vram-label" class="-mt-px text-[8px] uppercase tracking-widest text-muted leading-none">VRAM</span>
+          <span
+            id="hw-vram-label"
+            class="-mt-px text-[8px] uppercase tracking-widest text-muted leading-none"
+            >VRAM</span
+          >
         </span>
         <select id="hw-ram-select" class="hw-editable-select" disabled>
           <option value="">—</option>
@@ -82,66 +119,144 @@ function timeAgo(dateStr: string | null): string {
       <!-- Bandwidth -->
       <span id="hw-bw" class="hidden inline-flex items-center gap-1.5">
         <span class="text-edge/40">|</span>
-        <span data-tooltip="GB/s — Memory bandwidth. How fast data moves to the processor. Higher = faster inference" data-tooltip-pos="bottom" tabindex="0" aria-label="Bandwidth info" class="inline-flex shrink-0 flex-col items-center gap-1">
+        <span
+          data-tooltip="GB/s — Memory bandwidth. How fast data moves to the processor. Higher = faster inference"
+          data-tooltip-pos="bottom"
+          tabindex="0"
+          aria-label="Bandwidth info"
+          class="inline-flex shrink-0 flex-col items-center gap-1"
+        >
           <IconBandwidth class="h-4 w-4 text-muted" />
-          <span class="-mt-px text-[8px] uppercase tracking-widest text-muted leading-none">BW</span>
+          <span
+            class="-mt-px text-[8px] uppercase tracking-widest text-muted leading-none"
+            >BW</span
+          >
         </span>
         <select id="hw-bw-select" class="hw-editable-select"></select>
       </span>
       <!-- System RAM -->
       <span id="hw-sysram" class="hidden inline-flex items-center gap-1.5">
         <span class="text-edge/40">|</span>
-        <span data-tooltip="System RAM — used for CPU offloading when model doesn't fit in VRAM. More RAM = bigger models via offloading (slower)" data-tooltip-pos="bottom" tabindex="0" aria-label="System RAM info" class="inline-flex shrink-0 flex-col items-center gap-1">
+        <span
+          data-tooltip="System RAM — used for CPU offloading when model doesn't fit in VRAM. More RAM = bigger models via offloading (slower)"
+          data-tooltip-pos="bottom"
+          tabindex="0"
+          aria-label="System RAM info"
+          class="inline-flex shrink-0 flex-col items-center gap-1"
+        >
           <IconRam class="h-4 w-4 text-muted" />
-          <span class="-mt-px text-[8px] uppercase tracking-widest text-muted leading-none">RAM</span>
+          <span
+            class="-mt-px text-[8px] uppercase tracking-widest text-muted leading-none"
+            >RAM</span
+          >
         </span>
         <select id="hw-sysram-select" class="hw-editable-select"></select>
       </span>
       <!-- GPU Cores -->
       <span id="hw-gpu-cores" class="hidden inline-flex items-center gap-1.5">
         <span class="text-edge/40">|</span>
-        <span data-tooltip="GPU cores — more cores allow faster parallel computation for model inference" data-tooltip-pos="bottom" tabindex="0" aria-label="GPU cores info" class="inline-flex shrink-0 flex-col items-center gap-1">
+        <span
+          data-tooltip="GPU cores — more cores allow faster parallel computation for model inference"
+          data-tooltip-pos="bottom"
+          tabindex="0"
+          aria-label="GPU cores info"
+          class="inline-flex shrink-0 flex-col items-center gap-1"
+        >
           <IconCpu class="h-4 w-4 text-muted" />
-          <span class="-mt-px text-[8px] uppercase tracking-widest text-muted leading-none">CORES</span>
+          <span
+            class="-mt-px text-[8px] uppercase tracking-widest text-muted leading-none"
+            >CORES</span
+          >
         </span>
         <span id="hw-gpu-cores-text" class="text-secondary"></span>
       </span>
     </div>
-    <p id="hw-notice" class="mt-1.5 flex items-center justify-center gap-2 text-center text-xs text-muted invisible">
+    <p
+      id="hw-notice"
+      class="mt-1.5 flex items-center justify-center gap-2 text-center text-xs text-muted invisible"
+    >
       <span>Estimates based on browser APIs. Actual specs may vary.</span>
-      <span id="hw-webgpu-badge" class="inline-flex items-center gap-1 rounded-full border px-1.5 py-px text-[10px] font-medium" data-tooltip-pos="bottom" tabindex="0"></span>
+      <span
+        id="hw-webgpu-badge"
+        class="inline-flex items-center gap-1 rounded-full border px-1.5 py-px text-[10px] font-medium"
+        data-tooltip-pos="bottom"
+        tabindex="0"></span>
     </p>
   </section>
 
   <!-- Summary counters — grade distribution -->
   <div id="summary-bar" class="mb-8 invisible">
-    <div class="flex flex-wrap items-center justify-center gap-x-3 gap-y-2 font-mono text-xs sm:text-[13px] sm:gap-x-4">
-      <span class="flex items-center gap-1.5" style="color: var(--color-can-run)" data-tooltip="Grade S — Plenty of VRAM, fast inference" tabindex="0" role="group" aria-label="Grade S: Runs great">
+    <div
+      class="flex flex-wrap items-center justify-center gap-x-3 gap-y-2 font-mono text-xs sm:text-[13px] sm:gap-x-4"
+    >
+      <span
+        class="flex items-center gap-1.5"
+        style="color: var(--color-can-run)"
+        data-tooltip="Grade S — Plenty of VRAM, fast inference"
+        tabindex="0"
+        role="group"
+        aria-label="Grade S: Runs great"
+      >
         <span id="count-s" class="font-bold text-sm sm:text-base">0</span>
         <span class="font-medium uppercase tracking-wide">Runs great</span>
       </span>
       <span class="h-3 w-px bg-edge/40"></span>
-      <span class="flex items-center gap-1.5" style="color: var(--color-grade-a)" data-tooltip="Grade A — Runs smoothly with good headroom" tabindex="0" role="group" aria-label="Grade A: Runs well">
+      <span
+        class="flex items-center gap-1.5"
+        style="color: var(--color-grade-a)"
+        data-tooltip="Grade A — Runs smoothly with good headroom"
+        tabindex="0"
+        role="group"
+        aria-label="Grade A: Runs well"
+      >
         <span id="count-a" class="font-bold text-sm sm:text-base">0</span>
         <span class="font-medium uppercase tracking-wide">Runs well</span>
       </span>
       <span class="h-3 w-px bg-edge/40"></span>
-      <span class="flex items-center gap-1.5" style="color: var(--color-grade-b)" data-tooltip="Grade B — Decent performance, uses most memory" tabindex="0" role="group" aria-label="Grade B: Decent">
+      <span
+        class="flex items-center gap-1.5"
+        style="color: var(--color-grade-b)"
+        data-tooltip="Grade B — Decent performance, uses most memory"
+        tabindex="0"
+        role="group"
+        aria-label="Grade B: Decent"
+      >
         <span id="count-b" class="font-bold text-sm sm:text-base">0</span>
         <span class="font-medium uppercase tracking-wide">Decent</span>
       </span>
       <span class="h-3 w-px bg-edge/40"></span>
-      <span class="flex items-center gap-1.5" style="color: var(--color-maybe)" data-tooltip="Grade C — Tight fit, slower inference speeds" tabindex="0" role="group" aria-label="Grade C: Tight fit">
+      <span
+        class="flex items-center gap-1.5"
+        style="color: var(--color-maybe)"
+        data-tooltip="Grade C — Tight fit, slower inference speeds"
+        tabindex="0"
+        role="group"
+        aria-label="Grade C: Tight fit"
+      >
         <span id="count-c" class="font-bold text-sm sm:text-base">0</span>
         <span class="font-medium uppercase tracking-wide">Tight fit</span>
       </span>
       <span class="h-3 w-px bg-edge/40"></span>
-      <span class="flex items-center gap-1.5" style="color: var(--color-grade-d)" data-tooltip="Grade D — Barely fits, very slow inference" tabindex="0" role="group" aria-label="Grade D: Barely runs">
+      <span
+        class="flex items-center gap-1.5"
+        style="color: var(--color-grade-d)"
+        data-tooltip="Grade D — Barely fits, very slow inference"
+        tabindex="0"
+        role="group"
+        aria-label="Grade D: Barely runs"
+      >
         <span id="count-d" class="font-bold text-sm sm:text-base">0</span>
         <span class="font-medium uppercase tracking-wide">Barely runs</span>
       </span>
       <span class="h-3 w-px bg-edge/40"></span>
-      <span class="flex items-center gap-1.5" style="color: var(--color-cannot-run)" data-tooltip="Grade F — Not enough memory to run this model" tabindex="0" role="group" aria-label="Grade F: Too heavy">
+      <span
+        class="flex items-center gap-1.5"
+        style="color: var(--color-cannot-run)"
+        data-tooltip="Grade F — Not enough memory to run this model"
+        tabindex="0"
+        role="group"
+        aria-label="Grade F: Too heavy"
+      >
         <span id="count-f" class="font-bold text-sm sm:text-base">0</span>
         <span class="font-medium uppercase tracking-wide">Too heavy</span>
       </span>
@@ -152,7 +267,9 @@ function timeAgo(dateStr: string | null): string {
   <div class="mb-6 flex flex-wrap items-center gap-2">
     <!-- Search -->
     <div class="relative flex-1 min-w-[180px] max-w-xs">
-      <IconSearch class="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted" />
+      <IconSearch
+        class="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted"
+      />
       <input
         id="search-input"
         type="text"
@@ -160,7 +277,10 @@ function timeAgo(dateStr: string | null): string {
         class="filter-select w-full !pl-8 pr-8"
         autocomplete="off"
       />
-      <kbd class="pointer-events-none absolute right-2 top-1/2 hidden -translate-y-1/2 rounded border border-edge/60 bg-surface-raised px-1.5 py-0.5 font-mono text-xs leading-none text-secondary shadow-[0_1px_0_0_var(--color-edge)] sm:inline-block">/</kbd>
+      <kbd
+        class="pointer-events-none absolute right-2 top-1/2 hidden -translate-y-1/2 rounded border border-edge/60 bg-surface-raised px-1.5 py-0.5 font-mono text-xs leading-none text-secondary shadow-[0_1px_0_0_var(--color-edge)] sm:inline-block"
+        >/</kbd
+      >
     </div>
 
     <span class="hidden h-4 w-px bg-edge/40 sm:block"></span>
@@ -186,9 +306,7 @@ function timeAgo(dateStr: string | null): string {
     <!-- Provider filter -->
     <select id="filter-provider" class="filter-select">
       <option value="all">All providers</option>
-      {providers.map((p) => (
-        <option value={p}>{p}</option>
-      ))}
+      {providers.map((p) => <option value={p}>{p}</option>)}
     </select>
 
     <!-- License filter -->
@@ -196,9 +314,7 @@ function timeAgo(dateStr: string | null): string {
       <option value="all">All licenses</option>
       <option value="commercial">Commercial use</option>
       <option value="non-commercial">Non-commercial</option>
-      {LICENSE_LIST.map((l) => (
-        <option value={l}>{l}</option>
-      ))}
+      {LICENSE_LIST.map((l) => <option value={l}>{l}</option>)}
     </select>
 
     <!-- Sort -->
@@ -210,12 +326,17 @@ function timeAgo(dateStr: string | null): string {
       <option value="context">Sort: Context</option>
       <option value="toks">Sort: Speed</option>
       <option value="vram">Sort: VRAM ↑</option>
+      <option value="downloads">Sort: Popularity</option>
     </select>
 
     <span class="hidden h-4 w-px bg-edge/40 sm:block"></span>
 
     <!-- View mode toggle -->
-    <button id="view-toggle" class="filter-select hidden items-center gap-1.5 cursor-pointer sm:inline-flex" title="Toggle view mode">
+    <button
+      id="view-toggle"
+      class="filter-select hidden items-center gap-1.5 cursor-pointer sm:inline-flex"
+      title="Toggle view mode"
+    >
       <IconGrid id="view-icon-simple" class="hidden h-3 w-3" />
       <IconGridDots id="view-icon-advanced" class="hidden h-3 w-3" />
       <IconList id="view-icon-list" class="h-3 w-3" />
@@ -225,138 +346,239 @@ function timeAgo(dateStr: string | null): string {
 
   <!-- Popular models -->
   <div id="models-grid" class="grid grid-cols-1 list-view">
-    {featuredModels.map((model) => (
-      <a href={`/model/${model.id}`} class="block">
-        <article
-          data-model-id={model.id}
-          data-model-name={model.name}
-          data-quants={JSON.stringify(model.quants)}
-          data-params={model.paramsBillions}
-          data-arch={model.architecture}
-          data-uses={model.useCase.join(",")}
-          data-provider={model.provider}
-          data-context={model.contextLength}
-          data-release={model.releaseDate || ""}
-          data-featured="true"
-          data-license={model.license || ""}
-          data-commercial={isCommercialLicense(model.license) ? "true" : "false"}
-          class="model-card list-mode group relative flex h-full flex-col rounded-lg border border-edge/60 bg-surface-card transition-colors hover:bg-surface-hover"
-        >
-          <div data-card-body class="flex flex-col p-4 pb-3">
-            <div data-card-top class="min-w-0">
-              <div class="flex items-center justify-between gap-2">
-                <div class="flex items-center gap-2 min-w-0">
-                  <h3 class="truncate font-pixel text-base text-primary" style={`view-transition-name: ${getModelTitleTransitionName(model.id)};`}>{model.name}</h3>
-                  <span data-badges class="inline-flex items-center gap-1 shrink-0">
-                    {model.architecture === "moe" && (
-                      <span class="shrink-0 rounded border border-info/20 bg-info/5 p-0.5 text-info h-5 w-5 inline-flex items-center justify-center" title="Mixture of Experts">
-                        <IconMoe class="h-3 w-3" />
-                      </span>
-                    )}
-                    {model.tools && (
-                      <span class="shrink-0 rounded border border-purple-400/30 bg-purple-400/10 p-0.5 text-purple-400 h-5 w-5 inline-flex items-center justify-center" title="Tool Use">
-                        <IconTool class="h-3 w-3" />
-                      </span>
-                    )}
-                    {model.thinking && (
-                      <span class="shrink-0 rounded border border-sky-400/30 bg-sky-400/10 p-0.5 text-sky-400 h-5 w-5 inline-flex items-center justify-center" title="Thinking / Reasoning">
-                        <IconThinking class="h-3 w-3" />
-                      </span>
-                    )}
-                    {model.useCase.includes("vision") && (
-                      <span class="shrink-0 rounded border border-rose-400/30 bg-rose-400/10 p-0.5 text-rose-400 h-5 w-5 inline-flex items-center justify-center" title="Vision">
-                        <IconVision class="h-3 w-3" />
-                      </span>
-                    )}
-                    <span class="shrink-0 rounded border border-yellow-400/30 bg-yellow-400/10 p-0.5 text-yellow-400 h-5 w-5 inline-flex items-center justify-center" title="Popular">
-                      <IconStar class="h-3 w-3" />
-                    </span>
-                    {model.license && (() => {
-                      const tier = getLicenseTier(model.license);
-                      const colors = tier === "open"
-                        ? "border-emerald-400/30 bg-emerald-400/10 text-emerald-400"
-                        : tier === "partial"
-                          ? "border-amber-400/30 bg-amber-400/10 text-amber-400"
-                          : "border-orange-400/30 bg-orange-400/10 text-orange-400";
-                      const hint = tier === "open"
-                        ? `${model.license} — Fully open, commercial use allowed`
-                        : tier === "partial"
-                          ? `${model.license} — Commercial with conditions`
-                          : `${model.license} — Restrictive license`;
-                      return (
+    {
+      featuredModels.map((model) => (
+        <a href={`/model/${model.id}`} class="block">
+          <article
+            data-model-id={model.id}
+            data-model-name={model.name}
+            data-quants={JSON.stringify(model.quants)}
+            data-params={model.paramsBillions}
+            data-arch={model.architecture}
+            data-uses={model.useCase.join(",")}
+            data-provider={model.provider}
+            data-context={model.contextLength}
+            data-release={model.releaseDate || ""}
+            data-featured="true"
+            data-license={model.license || ""}
+            data-commercial={
+              isCommercialLicense(model.license) ? "true" : "false"
+            }
+            data-downloads={hfStatsTyped[model.id]?.downloads || 0}
+            class="model-card list-mode group relative flex h-full flex-col rounded-lg border border-edge/60 bg-surface-card transition-colors hover:bg-surface-hover"
+          >
+            <div data-card-body class="flex flex-col p-4 pb-3">
+              <div data-card-top class="min-w-0">
+                <div class="flex items-center justify-between gap-2">
+                  <div class="flex items-center gap-2 min-w-0">
+                    <h3
+                      class="truncate font-pixel text-base text-primary"
+                      style={`view-transition-name: ${getModelTitleTransitionName(model.id)};`}
+                    >
+                      {model.name}
+                    </h3>
+                    <span
+                      data-badges
+                      class="inline-flex items-center gap-1 shrink-0"
+                    >
+                      {model.architecture === "moe" && (
                         <span
-                          data-license-link={`/license/${getLicenseSlug(model.license)}`}
-                          class={`hidden lg:inline-flex h-5 items-center gap-1 rounded border px-1.5 font-mono text-[11px] leading-none cursor-pointer transition-opacity hover:opacity-80 ${colors}`}
-                          title={hint}
+                          class="shrink-0 rounded border border-info/20 bg-info/5 p-0.5 text-info h-5 w-5 inline-flex items-center justify-center"
+                          title="Mixture of Experts"
                         >
-                          <IconLicense class="h-2.5 w-2.5 shrink-0" />
-                          {model.license}
+                          <IconMoe class="h-3 w-3" />
                         </span>
-                      );
-                    })()}
-                  </span>
-                </div>
-                {model.releaseDate && (
-                  <span data-time-ago class="shrink-0 font-mono text-[11px] text-muted/60">{timeAgo(model.releaseDate)}</span>
-                )}
-              </div>
-              <p data-card-provider class="mt-0.5 font-mono text-[13px] text-muted">
-                {model.provider} · {model.params}{model.license && ` · ${model.license}`}
-              </p>
-              <p data-description class="mt-1 text-[13px] leading-snug text-secondary/60 italic">{model.description}</p>
-            </div>
-            <div data-card-stats class="mt-3 flex items-center gap-3 font-mono text-[13px]">
-              <span data-vram class="inline-flex items-center gap-1 text-muted"><span data-vram-val class="text-secondary">{(model.quants.find(q => q.name === "Q4_K_M") || model.quants[0]).vramGB}</span> GB <span data-mem-pct-pill class="hidden rounded-full px-1.5 py-px text-[11px] font-medium" data-mem-pct></span></span>
-              <span data-ctx-sep class="text-edge/40">·</span>
-              <span data-ctx class="text-muted"><span class="text-secondary">{model.contextLength >= 1024 ? `${Math.round(model.contextLength / 1024)}K` : model.contextLength}</span> ctx</span>
-              <span data-tok-sep class="text-edge/40">·</span>
-              <span data-tok-speed class="text-muted"></span>
-            </div>
-            <div data-advanced class="mt-3 hidden border-t border-edge/30 pt-3">
-              <div class="mb-2 flex flex-wrap gap-1">
-                {model.quants.map((q, i) => (
-                  <button
-                    data-quant-btn={i}
-                    class={`quant-btn rounded px-1.5 py-0.5 text-xs font-mono transition-colors ${i === 2 ? "border border-accent/30 bg-accent/10 text-accent" : "border border-transparent text-muted hover:text-secondary"}`}
-                  >
-                    {q.name}
-                  </button>
-                ))}
-              </div>
-              <div class="grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
-                <div class="flex justify-between">
-                  <span class="text-muted">Released</span>
-                  <span class="font-mono text-secondary">{model.releaseDate}</span>
-                </div>
-                <div class="flex justify-between">
-                  <span class="text-muted">Architecture</span>
-                  <span class="font-mono text-secondary">{model.architecture === "moe" ? "MoE" : "Dense"}</span>
-                </div>
-                {model.activeParams && (
-                  <div class="flex justify-between">
-                    <span class="text-muted">Active</span>
-                    <span class="font-mono text-secondary">{model.activeParams}</span>
+                      )}
+                      {model.tools && (
+                        <span
+                          class="shrink-0 rounded border border-purple-400/30 bg-purple-400/10 p-0.5 text-purple-400 h-5 w-5 inline-flex items-center justify-center"
+                          title="Tool Use"
+                        >
+                          <IconTool class="h-3 w-3" />
+                        </span>
+                      )}
+                      {model.thinking && (
+                        <span
+                          class="shrink-0 rounded border border-sky-400/30 bg-sky-400/10 p-0.5 text-sky-400 h-5 w-5 inline-flex items-center justify-center"
+                          title="Thinking / Reasoning"
+                        >
+                          <IconThinking class="h-3 w-3" />
+                        </span>
+                      )}
+                      {model.useCase.includes("vision") && (
+                        <span
+                          class="shrink-0 rounded border border-rose-400/30 bg-rose-400/10 p-0.5 text-rose-400 h-5 w-5 inline-flex items-center justify-center"
+                          title="Vision"
+                        >
+                          <IconVision class="h-3 w-3" />
+                        </span>
+                      )}
+                      <span
+                        class="shrink-0 rounded border border-yellow-400/30 bg-yellow-400/10 p-0.5 text-yellow-400 h-5 w-5 inline-flex items-center justify-center"
+                        title="Popular"
+                      >
+                        <IconStar class="h-3 w-3" />
+                      </span>
+                      {model.license &&
+                        (() => {
+                          const tier = getLicenseTier(model.license)
+                          const colors =
+                            tier === "open"
+                              ? "border-emerald-400/30 bg-emerald-400/10 text-emerald-400"
+                              : tier === "partial"
+                                ? "border-amber-400/30 bg-amber-400/10 text-amber-400"
+                                : "border-orange-400/30 bg-orange-400/10 text-orange-400"
+                          const hint =
+                            tier === "open"
+                              ? `${model.license} — Fully open, commercial use allowed`
+                              : tier === "partial"
+                                ? `${model.license} — Commercial with conditions`
+                                : `${model.license} — Restrictive license`
+                          return (
+                            <span
+                              data-license-link={`/license/${getLicenseSlug(model.license)}`}
+                              class={`hidden lg:inline-flex h-5 items-center gap-1 rounded border px-1.5 font-mono text-[11px] leading-none cursor-pointer transition-opacity hover:opacity-80 ${colors}`}
+                              title={hint}
+                            >
+                              <IconLicense class="h-2.5 w-2.5 shrink-0" />
+                              {model.license}
+                            </span>
+                          )
+                        })()}
+                    </span>
                   </div>
-                )}
-                <div data-mem-pct-row class="flex justify-between">
-                  <span class="text-muted">Memory</span>
-                  <span data-mem-pct-detail class="font-mono text-secondary">—</span>
+                  {model.releaseDate && (
+                    <span
+                      data-time-ago
+                      class="shrink-0 font-mono text-[11px] text-muted/60"
+                    >
+                      {timeAgo(model.releaseDate)}
+                    </span>
+                  )}
+                </div>
+                <p
+                  data-card-provider
+                  class="mt-0.5 font-mono text-[13px] text-muted"
+                >
+                  {model.provider} · {model.params}
+                  {model.license && ` · ${model.license}`}
+                </p>
+                <p
+                  data-description
+                  class="mt-1 text-[13px] leading-snug text-secondary/60 italic"
+                >
+                  {model.description}
+                </p>
+              </div>
+              <div
+                data-card-stats
+                class="mt-3 flex items-center gap-3 font-mono text-[13px]"
+              >
+                <span
+                  data-vram
+                  class="inline-flex items-center gap-1 text-muted"
+                >
+                  <span data-vram-val class="text-secondary">
+                    {
+                      (
+                        model.quants.find((q) => q.name === "Q4_K_M") ||
+                        model.quants[0]
+                      ).vramGB
+                    }
+                  </span>{" "}
+                  GB{" "}
+                  <span
+                    data-mem-pct-pill
+                    class="hidden rounded-full px-1.5 py-px text-[11px] font-medium"
+                    data-mem-pct
+                  />
+                </span>
+                <span data-ctx-sep class="text-edge/40">
+                  ·
+                </span>
+                <span data-ctx class="text-muted">
+                  <span class="text-secondary">
+                    {model.contextLength >= 1024
+                      ? `${Math.round(model.contextLength / 1024)}K`
+                      : model.contextLength}
+                  </span>{" "}
+                  ctx
+                </span>
+                <span data-tok-sep class="text-edge/40">
+                  ·
+                </span>
+                <span data-tok-speed class="text-muted" />
+              </div>
+              <div
+                data-advanced
+                class="mt-3 hidden border-t border-edge/30 pt-3"
+              >
+                <div class="mb-2 flex flex-wrap gap-1">
+                  {model.quants.map((q, i) => (
+                    <button
+                      data-quant-btn={i}
+                      class={`quant-btn rounded px-1.5 py-0.5 text-xs font-mono transition-colors ${i === 2 ? "border border-accent/30 bg-accent/10 text-accent" : "border border-transparent text-muted hover:text-secondary"}`}
+                    >
+                      {q.name}
+                    </button>
+                  ))}
+                </div>
+                <div class="grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
+                  <div class="flex justify-between">
+                    <span class="text-muted">Released</span>
+                    <span class="font-mono text-secondary">
+                      {model.releaseDate}
+                    </span>
+                  </div>
+                  <div class="flex justify-between">
+                    <span class="text-muted">Architecture</span>
+                    <span class="font-mono text-secondary">
+                      {model.architecture === "moe" ? "MoE" : "Dense"}
+                    </span>
+                  </div>
+                  {model.activeParams && (
+                    <div class="flex justify-between">
+                      <span class="text-muted">Active</span>
+                      <span class="font-mono text-secondary">
+                        {model.activeParams}
+                      </span>
+                    </div>
+                  )}
+                  <div data-mem-pct-row class="flex justify-between">
+                    <span class="text-muted">Memory</span>
+                    <span data-mem-pct-detail class="font-mono text-secondary">
+                      —
+                    </span>
+                  </div>
+                </div>
+                <div class="mt-2 flex flex-wrap gap-1">
+                  {model.useCase.map((tag) => (
+                    <span class="rounded border border-edge/40 px-1.5 py-0.5 text-[11px] text-muted">
+                      {tag}
+                    </span>
+                  ))}
                 </div>
               </div>
-              <div class="mt-2 flex flex-wrap gap-1">
-                {model.useCase.map((tag) => (
-                  <span class="rounded border border-edge/40 px-1.5 py-0.5 text-[11px] text-muted">{tag}</span>
-                ))}
-              </div>
             </div>
-          </div>
-          <div data-card-footer class="mt-auto flex items-center justify-between px-4 pb-3">
-            <span data-status-label class="font-mono text-xs font-medium uppercase tracking-wider text-muted"></span>
-            <span data-score-num class="font-mono text-xs text-muted/50" data-tooltip="Score = speed (55%) + memory headroom (35%) + model quality bonus" tabindex="0"></span>
-          </div>
-        </article>
-      </a>
-    ))}
+            <div
+              data-card-footer
+              class="mt-auto flex items-center justify-between px-4 pb-3"
+            >
+              <span
+                data-status-label
+                class="font-mono text-xs font-medium uppercase tracking-wider text-muted"
+              />
+              <span
+                data-score-num
+                class="font-mono text-xs text-muted/50"
+                data-tooltip="Score = speed (55%) + memory headroom (35%) + model quality bonus"
+                tabindex="0"
+              />
+            </div>
+          </article>
+        </a>
+      ))
+    }
   </div>
 
   <!-- Section divider -->
@@ -368,148 +590,269 @@ function timeAgo(dateStr: string | null): string {
 
   <!-- Rest of models -->
   <div id="models-grid-rest" class="grid grid-cols-1 list-view">
-    {otherModels.map((model) => (
-      <a href={`/model/${model.id}`} class="block">
-        <article
-          data-model-id={model.id}
-          data-model-name={model.name}
-          data-quants={JSON.stringify(model.quants)}
-          data-params={model.paramsBillions}
-          data-arch={model.architecture}
-          data-uses={model.useCase.join(",")}
-          data-provider={model.provider}
-          data-context={model.contextLength}
-          data-release={model.releaseDate || ""}
-          data-license={model.license || ""}
-          data-commercial={isCommercialLicense(model.license) ? "true" : "false"}
-          class="model-card list-mode group relative flex h-full flex-col rounded-lg border border-edge/60 bg-surface-card transition-colors hover:bg-surface-hover"
-        >
-          <div data-card-body class="flex flex-col p-4 pb-3">
-            <div data-card-top class="min-w-0">
-              <div class="flex items-center justify-between gap-2">
-                <div class="flex items-center gap-2 min-w-0">
-                  <h3 class="truncate font-pixel text-base text-primary" style={`view-transition-name: ${getModelTitleTransitionName(model.id)};`}>{model.name}</h3>
-                  <span data-badges class="inline-flex items-center gap-1 shrink-0">
-                    {model.architecture === "moe" && (
-                      <span class="shrink-0 rounded border border-info/20 bg-info/5 p-0.5 text-info h-5 w-5 inline-flex items-center justify-center" title="Mixture of Experts">
-                        <IconMoe class="h-3 w-3" />
-                      </span>
-                    )}
-                    {model.tools && (
-                      <span class="shrink-0 rounded border border-purple-400/30 bg-purple-400/10 p-0.5 text-purple-400 h-5 w-5 inline-flex items-center justify-center" title="Tool Use">
-                        <IconTool class="h-3 w-3" />
-                      </span>
-                    )}
-                    {model.thinking && (
-                      <span class="shrink-0 rounded border border-sky-400/30 bg-sky-400/10 p-0.5 text-sky-400 h-5 w-5 inline-flex items-center justify-center" title="Thinking / Reasoning">
-                        <IconThinking class="h-3 w-3" />
-                      </span>
-                    )}
-                    {model.useCase.includes("vision") && (
-                      <span class="shrink-0 rounded border border-rose-400/30 bg-rose-400/10 p-0.5 text-rose-400 h-5 w-5 inline-flex items-center justify-center" title="Vision">
-                        <IconVision class="h-3 w-3" />
-                      </span>
-                    )}
-                    {model.license && (() => {
-                      const tier = getLicenseTier(model.license);
-                      const colors = tier === "open"
-                        ? "border-emerald-400/30 bg-emerald-400/10 text-emerald-400"
-                        : tier === "partial"
-                          ? "border-amber-400/30 bg-amber-400/10 text-amber-400"
-                          : "border-orange-400/30 bg-orange-400/10 text-orange-400";
-                      const hint = tier === "open"
-                        ? `${model.license} — Fully open, commercial use allowed`
-                        : tier === "partial"
-                          ? `${model.license} — Commercial with conditions`
-                          : `${model.license} — Restrictive license`;
-                      return (
+    {
+      otherModels.map((model) => (
+        <a href={`/model/${model.id}`} class="block">
+          <article
+            data-model-id={model.id}
+            data-model-name={model.name}
+            data-quants={JSON.stringify(model.quants)}
+            data-params={model.paramsBillions}
+            data-arch={model.architecture}
+            data-uses={model.useCase.join(",")}
+            data-provider={model.provider}
+            data-context={model.contextLength}
+            data-release={model.releaseDate || ""}
+            data-license={model.license || ""}
+            data-commercial={
+              isCommercialLicense(model.license) ? "true" : "false"
+            }
+            data-downloads={hfStatsTyped[model.id]?.downloads || 0}
+            class="model-card list-mode group relative flex h-full flex-col rounded-lg border border-edge/60 bg-surface-card transition-colors hover:bg-surface-hover"
+          >
+            <div data-card-body class="flex flex-col p-4 pb-3">
+              <div data-card-top class="min-w-0">
+                <div class="flex items-center justify-between gap-2">
+                  <div class="flex items-center gap-2 min-w-0">
+                    <h3
+                      class="truncate font-pixel text-base text-primary"
+                      style={`view-transition-name: ${getModelTitleTransitionName(model.id)};`}
+                    >
+                      {model.name}
+                    </h3>
+                    <span
+                      data-badges
+                      class="inline-flex items-center gap-1 shrink-0"
+                    >
+                      {model.architecture === "moe" && (
                         <span
-                          data-license-link={`/license/${getLicenseSlug(model.license)}`}
-                          class={`hidden lg:inline-flex h-5 items-center gap-1 rounded border px-1.5 font-mono text-[11px] leading-none cursor-pointer transition-opacity hover:opacity-80 ${colors}`}
-                          title={hint}
+                          class="shrink-0 rounded border border-info/20 bg-info/5 p-0.5 text-info h-5 w-5 inline-flex items-center justify-center"
+                          title="Mixture of Experts"
                         >
-                          <IconLicense class="h-2.5 w-2.5 shrink-0" />
-                          {model.license}
+                          <IconMoe class="h-3 w-3" />
                         </span>
-                      );
-                    })()}
-                  </span>
-                </div>
-                {model.releaseDate && (
-                  <span data-time-ago class="shrink-0 font-mono text-[11px] text-muted/60">{timeAgo(model.releaseDate)}</span>
-                )}
-              </div>
-              <p data-card-provider class="mt-0.5 font-mono text-[13px] text-muted">
-                {model.provider} · {model.params}{model.license && ` · ${model.license}`}
-              </p>
-              <p data-description class="mt-1 text-[13px] leading-snug text-secondary/60 italic">{model.description}</p>
-            </div>
-            <div data-card-stats class="mt-3 flex items-center gap-3 font-mono text-[13px]">
-              <span data-vram class="inline-flex items-center gap-1 text-muted"><span data-vram-val class="text-secondary">{(model.quants.find(q => q.name === "Q4_K_M") || model.quants[0]).vramGB}</span> GB <span data-mem-pct-pill class="hidden rounded-full px-1.5 py-px text-[11px] font-medium" data-mem-pct></span></span>
-              <span data-ctx-sep class="text-edge/40">·</span>
-              <span data-ctx class="text-muted"><span class="text-secondary">{model.contextLength >= 1024 ? `${Math.round(model.contextLength / 1024)}K` : model.contextLength}</span> ctx</span>
-              <span data-tok-sep class="text-edge/40">·</span>
-              <span data-tok-speed class="text-muted"></span>
-            </div>
-            <div data-advanced class="mt-3 hidden border-t border-edge/30 pt-3">
-              <div class="mb-2 flex flex-wrap gap-1">
-                {model.quants.map((q, i) => (
-                  <button
-                    data-quant-btn={i}
-                    class={`quant-btn rounded px-1.5 py-0.5 text-xs font-mono transition-colors ${i === 2 ? "border border-accent/30 bg-accent/10 text-accent" : "border border-transparent text-muted hover:text-secondary"}`}
-                  >
-                    {q.name}
-                  </button>
-                ))}
-              </div>
-              <div class="grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
-                <div class="flex justify-between">
-                  <span class="text-muted">Released</span>
-                  <span class="font-mono text-secondary">{model.releaseDate}</span>
-                </div>
-                <div class="flex justify-between">
-                  <span class="text-muted">Architecture</span>
-                  <span class="font-mono text-secondary">{model.architecture === "moe" ? "MoE" : "Dense"}</span>
-                </div>
-                {model.activeParams && (
-                  <div class="flex justify-between">
-                    <span class="text-muted">Active</span>
-                    <span class="font-mono text-secondary">{model.activeParams}</span>
+                      )}
+                      {model.tools && (
+                        <span
+                          class="shrink-0 rounded border border-purple-400/30 bg-purple-400/10 p-0.5 text-purple-400 h-5 w-5 inline-flex items-center justify-center"
+                          title="Tool Use"
+                        >
+                          <IconTool class="h-3 w-3" />
+                        </span>
+                      )}
+                      {model.thinking && (
+                        <span
+                          class="shrink-0 rounded border border-sky-400/30 bg-sky-400/10 p-0.5 text-sky-400 h-5 w-5 inline-flex items-center justify-center"
+                          title="Thinking / Reasoning"
+                        >
+                          <IconThinking class="h-3 w-3" />
+                        </span>
+                      )}
+                      {model.useCase.includes("vision") && (
+                        <span
+                          class="shrink-0 rounded border border-rose-400/30 bg-rose-400/10 p-0.5 text-rose-400 h-5 w-5 inline-flex items-center justify-center"
+                          title="Vision"
+                        >
+                          <IconVision class="h-3 w-3" />
+                        </span>
+                      )}
+                      {model.license &&
+                        (() => {
+                          const tier = getLicenseTier(model.license)
+                          const colors =
+                            tier === "open"
+                              ? "border-emerald-400/30 bg-emerald-400/10 text-emerald-400"
+                              : tier === "partial"
+                                ? "border-amber-400/30 bg-amber-400/10 text-amber-400"
+                                : "border-orange-400/30 bg-orange-400/10 text-orange-400"
+                          const hint =
+                            tier === "open"
+                              ? `${model.license} — Fully open, commercial use allowed`
+                              : tier === "partial"
+                                ? `${model.license} — Commercial with conditions`
+                                : `${model.license} — Restrictive license`
+                          return (
+                            <span
+                              data-license-link={`/license/${getLicenseSlug(model.license)}`}
+                              class={`hidden lg:inline-flex h-5 items-center gap-1 rounded border px-1.5 font-mono text-[11px] leading-none cursor-pointer transition-opacity hover:opacity-80 ${colors}`}
+                              title={hint}
+                            >
+                              <IconLicense class="h-2.5 w-2.5 shrink-0" />
+                              {model.license}
+                            </span>
+                          )
+                        })()}
+                    </span>
                   </div>
-                )}
-                <div data-mem-pct-row class="flex justify-between">
-                  <span class="text-muted">Memory</span>
-                  <span data-mem-pct-detail class="font-mono text-secondary">—</span>
+                  {model.releaseDate && (
+                    <span
+                      data-time-ago
+                      class="shrink-0 font-mono text-[11px] text-muted/60"
+                    >
+                      {timeAgo(model.releaseDate)}
+                    </span>
+                  )}
+                </div>
+                <p
+                  data-card-provider
+                  class="mt-0.5 font-mono text-[13px] text-muted"
+                >
+                  {model.provider} · {model.params}
+                  {model.license && ` · ${model.license}`}
+                </p>
+                <p
+                  data-description
+                  class="mt-1 text-[13px] leading-snug text-secondary/60 italic"
+                >
+                  {model.description}
+                </p>
+              </div>
+              <div
+                data-card-stats
+                class="mt-3 flex items-center gap-3 font-mono text-[13px]"
+              >
+                <span
+                  data-vram
+                  class="inline-flex items-center gap-1 text-muted"
+                >
+                  <span data-vram-val class="text-secondary">
+                    {
+                      (
+                        model.quants.find((q) => q.name === "Q4_K_M") ||
+                        model.quants[0]
+                      ).vramGB
+                    }
+                  </span>{" "}
+                  GB{" "}
+                  <span
+                    data-mem-pct-pill
+                    class="hidden rounded-full px-1.5 py-px text-[11px] font-medium"
+                    data-mem-pct
+                  />
+                </span>
+                <span data-ctx-sep class="text-edge/40">
+                  ·
+                </span>
+                <span data-ctx class="text-muted">
+                  <span class="text-secondary">
+                    {model.contextLength >= 1024
+                      ? `${Math.round(model.contextLength / 1024)}K`
+                      : model.contextLength}
+                  </span>{" "}
+                  ctx
+                </span>
+                <span data-tok-sep class="text-edge/40">
+                  ·
+                </span>
+                <span data-tok-speed class="text-muted" />
+              </div>
+              <div
+                data-advanced
+                class="mt-3 hidden border-t border-edge/30 pt-3"
+              >
+                <div class="mb-2 flex flex-wrap gap-1">
+                  {model.quants.map((q, i) => (
+                    <button
+                      data-quant-btn={i}
+                      class={`quant-btn rounded px-1.5 py-0.5 text-xs font-mono transition-colors ${i === 2 ? "border border-accent/30 bg-accent/10 text-accent" : "border border-transparent text-muted hover:text-secondary"}`}
+                    >
+                      {q.name}
+                    </button>
+                  ))}
+                </div>
+                <div class="grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
+                  <div class="flex justify-between">
+                    <span class="text-muted">Released</span>
+                    <span class="font-mono text-secondary">
+                      {model.releaseDate}
+                    </span>
+                  </div>
+                  <div class="flex justify-between">
+                    <span class="text-muted">Architecture</span>
+                    <span class="font-mono text-secondary">
+                      {model.architecture === "moe" ? "MoE" : "Dense"}
+                    </span>
+                  </div>
+                  {model.activeParams && (
+                    <div class="flex justify-between">
+                      <span class="text-muted">Active</span>
+                      <span class="font-mono text-secondary">
+                        {model.activeParams}
+                      </span>
+                    </div>
+                  )}
+                  <div data-mem-pct-row class="flex justify-between">
+                    <span class="text-muted">Memory</span>
+                    <span data-mem-pct-detail class="font-mono text-secondary">
+                      —
+                    </span>
+                  </div>
+                </div>
+                <div class="mt-2 flex flex-wrap gap-1">
+                  {model.useCase.map((tag) => (
+                    <span class="rounded border border-edge/40 px-1.5 py-0.5 text-[11px] text-muted">
+                      {tag}
+                    </span>
+                  ))}
                 </div>
               </div>
-              <div class="mt-2 flex flex-wrap gap-1">
-                {model.useCase.map((tag) => (
-                  <span class="rounded border border-edge/40 px-1.5 py-0.5 text-[11px] text-muted">{tag}</span>
-                ))}
-              </div>
             </div>
-          </div>
-          <div data-card-footer class="mt-auto flex items-center justify-between px-4 pb-3">
-            <span data-status-label class="font-mono text-xs font-medium uppercase tracking-wider text-muted"></span>
-            <span data-score-num class="font-mono text-xs text-muted/50" data-tooltip="Score = speed (55%) + memory headroom (35%) + model quality bonus" tabindex="0"></span>
-          </div>
-        </article>
-      </a>
-    ))}
+            <div
+              data-card-footer
+              class="mt-auto flex items-center justify-between px-4 pb-3"
+            >
+              <span
+                data-status-label
+                class="font-mono text-xs font-medium uppercase tracking-wider text-muted"
+              />
+              <span
+                data-score-num
+                class="font-mono text-xs text-muted/50"
+                data-tooltip="Score = speed (55%) + memory headroom (35%) + model quality bonus"
+                tabindex="0"
+              />
+            </div>
+          </article>
+        </a>
+      ))
+    }
   </div>
 
   <!-- No results empty state -->
   <div id="no-results" class="hidden py-20 text-center">
     <p class="font-pixel text-lg text-muted/60">No models found</p>
-    <p class="mt-2 text-base text-muted/40">Try adjusting your search or filters</p>
-    <button id="reset-filters" class="mt-5 inline-flex items-center gap-1.5 rounded-lg border border-edge/60 bg-surface-raised px-4 py-2 font-mono text-sm text-secondary transition-colors hover:border-accent/30 hover:bg-surface-hover hover:text-primary cursor-pointer">
+    <p class="mt-2 text-base text-muted/40">
+      Try adjusting your search or filters
+    </p>
+    <button
+      id="reset-filters"
+      class="mt-5 inline-flex items-center gap-1.5 rounded-lg border border-edge/60 bg-surface-raised px-4 py-2 font-mono text-sm text-secondary transition-colors hover:border-accent/30 hover:bg-surface-hover hover:text-primary cursor-pointer"
+    >
       Reset filters
     </button>
   </div>
 
   <Footer class="mt-20">
     <p class="text-[13px] text-muted/70">
-      Data sourced from <a href="https://github.com/ggerganov/llama.cpp" target="_blank" rel="noopener" class="text-muted underline decoration-edge underline-offset-2 hover:text-primary">llama.cpp</a>, <a href="https://ollama.com" target="_blank" rel="noopener" class="text-muted underline decoration-edge underline-offset-2 hover:text-primary">Ollama</a> and <a href="https://lmstudio.ai" target="_blank" rel="noopener" class="text-muted underline decoration-edge underline-offset-2 hover:text-primary">LM Studio</a>.
+      Data sourced from <a
+        href="https://github.com/ggerganov/llama.cpp"
+        target="_blank"
+        rel="noopener"
+        class="text-muted underline decoration-edge underline-offset-2 hover:text-primary"
+        >llama.cpp</a
+      >, <a
+        href="https://ollama.com"
+        target="_blank"
+        rel="noopener"
+        class="text-muted underline decoration-edge underline-offset-2 hover:text-primary"
+        >Ollama</a
+      > and <a
+        href="https://lmstudio.ai"
+        target="_blank"
+        rel="noopener"
+        class="text-muted underline decoration-edge underline-offset-2 hover:text-primary"
+        >LM Studio</a
+      >.
     </p>
   </Footer>
 </main>
@@ -526,835 +869,984 @@ function timeAgo(dateStr: string | null): string {
     RAM_OPTIONS,
     BW_OPTIONS,
     GRADES as _GRADES,
-  } from "@/lib/hardware";
-  import type { HardwareInfo, HardwareOverrides, ModelStatus, Grade, GradeInfo } from "@/lib/hardware";
-  import { fitSelectWidth, populateSelect, appendDeviceOptgroups } from "@/lib/hardware-ui";
-  import { deviceKeyToSlug, slugToDeviceKey } from "@/lib/device-slugs";
+  } from "@/lib/hardware"
+  import type {
+    HardwareInfo,
+    HardwareOverrides,
+    ModelStatus,
+    Grade,
+    GradeInfo,
+  } from "@/lib/hardware"
+  import {
+    fitSelectWidth,
+    populateSelect,
+    appendDeviceOptgroups,
+  } from "@/lib/hardware-ui"
+  import { deviceKeyToSlug, slugToDeviceKey } from "@/lib/device-slugs"
 
   const GRADES: Record<Grade, GradeInfo> = {
-    "S": { letter: "S",  label: "Runs great",  color: "var(--color-can-run)" },
-    "A": { letter: "A",  label: "Runs well",   color: "var(--color-grade-a)" },
-    "B": { letter: "B",  label: "Decent",       color: "var(--color-grade-b)" },
-    "C": { letter: "C",  label: "Tight fit",    color: "var(--color-maybe)" },
-    "D": { letter: "D",  label: "Barely runs",  color: "var(--color-grade-d)" },
-    "F": { letter: "F",  label: "Too heavy",    color: "var(--color-cannot-run)" },
-    "?": { letter: "?",  label: "Unknown",      color: "var(--color-muted)" },
-  };
+    S: { letter: "S", label: "Runs great", color: "var(--color-can-run)" },
+    A: { letter: "A", label: "Runs well", color: "var(--color-grade-a)" },
+    B: { letter: "B", label: "Decent", color: "var(--color-grade-b)" },
+    C: { letter: "C", label: "Tight fit", color: "var(--color-maybe)" },
+    D: { letter: "D", label: "Barely runs", color: "var(--color-grade-d)" },
+    F: { letter: "F", label: "Too heavy", color: "var(--color-cannot-run)" },
+    "?": { letter: "?", label: "Unknown", color: "var(--color-muted)" },
+  }
 
   const STATUS_COLORS: Record<ModelStatus, string> = {
     "can-run": "var(--color-can-run)",
-    "tight": "var(--color-maybe)",
+    tight: "var(--color-maybe)",
     "can-run-slow": "var(--color-offload)",
     "cannot-run": "var(--color-cannot-run)",
-    "unknown": "var(--color-muted)",
-  };
+    unknown: "var(--color-muted)",
+  }
 
-  const $ = <T extends Element = HTMLElement>(s: string) => document.querySelector<T>(s);
-  const $$ = <T extends Element = HTMLElement>(s: string) => [...document.querySelectorAll<T>(s)];
+  const $ = <T extends Element = HTMLElement>(s: string) =>
+    document.querySelector<T>(s)
+  const $$ = <T extends Element = HTMLElement>(s: string) => [
+    ...document.querySelectorAll<T>(s),
+  ]
 
   // ── URL / Query Param Helpers ─────────────────────────────
 
   function buildFilterQueryString(): URLSearchParams {
-    const params = new URLSearchParams();
-    if (searchQuery) params.set("q", searchQuery);
-    if (activeStatusFilter !== "all") params.set("status", activeStatusFilter);
-    if (activeUseFilter !== "all") params.set("use", activeUseFilter);
-    if (activeProviderFilter !== "all") params.set("provider", activeProviderFilter);
-    if (activeLicenseFilter !== "all") params.set("license", activeLicenseFilter);
-    if (currentSort !== "score") params.set("sort", currentSort);
-    return params;
+    const params = new URLSearchParams()
+    if (searchQuery) params.set("q", searchQuery)
+    if (activeStatusFilter !== "all") params.set("status", activeStatusFilter)
+    if (activeUseFilter !== "all") params.set("use", activeUseFilter)
+    if (activeProviderFilter !== "all")
+      params.set("provider", activeProviderFilter)
+    if (activeLicenseFilter !== "all")
+      params.set("license", activeLicenseFilter)
+    if (currentSort !== "score") params.set("sort", currentSort)
+    return params
   }
 
   function syncFiltersToURL() {
-    const params = buildFilterQueryString();
-    const qs = params.toString() ? `?${params.toString()}` : "";
-    const path = window.location.pathname;
-    history.replaceState({}, "", `${path}${qs}`);
+    const params = buildFilterQueryString()
+    const qs = params.toString() ? `?${params.toString()}` : ""
+    const path = window.location.pathname
+    history.replaceState({}, "", `${path}${qs}`)
   }
 
   function readFiltersFromURL() {
-    const params = new URLSearchParams(window.location.search);
-    searchQuery = params.get("q") || "";
-    activeStatusFilter = params.get("status") || "all";
-    activeUseFilter = params.get("use") || "all";
-    activeProviderFilter = params.get("provider") || "all";
-    activeLicenseFilter = params.get("license") || "all";
-    const sortParam = params.get("sort");
-    if (sortParam) currentSort = sortParam;
+    const params = new URLSearchParams(window.location.search)
+    searchQuery = params.get("q") || ""
+    activeStatusFilter = params.get("status") || "all"
+    activeUseFilter = params.get("use") || "all"
+    activeProviderFilter = params.get("provider") || "all"
+    activeLicenseFilter = params.get("license") || "all"
+    const sortParam = params.get("sort")
+    if (sortParam) currentSort = sortParam
 
-    const searchInput = $<HTMLInputElement>("#search-input");
-    const statusSelect = $<HTMLSelectElement>("#filter-status");
-    const useSelect = $<HTMLSelectElement>("#filter-use");
-    const providerSelect = $<HTMLSelectElement>("#filter-provider");
-    const licenseSelect = $<HTMLSelectElement>("#filter-license");
-    const sortSelect = $<HTMLSelectElement>("#sort-select");
+    const searchInput = $<HTMLInputElement>("#search-input")
+    const statusSelect = $<HTMLSelectElement>("#filter-status")
+    const useSelect = $<HTMLSelectElement>("#filter-use")
+    const providerSelect = $<HTMLSelectElement>("#filter-provider")
+    const licenseSelect = $<HTMLSelectElement>("#filter-license")
+    const sortSelect = $<HTMLSelectElement>("#sort-select")
 
-    if (searchInput) searchInput.value = searchQuery;
-    if (statusSelect) statusSelect.value = activeStatusFilter;
-    if (useSelect) useSelect.value = activeUseFilter;
-    if (providerSelect) providerSelect.value = activeProviderFilter;
-    if (licenseSelect) licenseSelect.value = activeLicenseFilter;
-    if (sortSelect) sortSelect.value = currentSort;
+    if (searchInput) searchInput.value = searchQuery
+    if (statusSelect) statusSelect.value = activeStatusFilter
+    if (useSelect) useSelect.value = activeUseFilter
+    if (providerSelect) providerSelect.value = activeProviderFilter
+    if (licenseSelect) licenseSelect.value = activeLicenseFilter
+    if (sortSelect) sortSelect.value = currentSort
   }
 
   // ── Main Logic ─────────────────────────────────────────────
 
-  let detectedHW: HardwareInfo;
-  let currentHW: HardwareInfo;
+  let detectedHW: HardwareInfo
+  let currentHW: HardwareInfo
 
-  function populateDeviceSelect(select: HTMLSelectElement, detectedName: string, storedDevice: string | undefined) {
-    select.innerHTML = "";
+  function populateDeviceSelect(
+    select: HTMLSelectElement,
+    detectedName: string,
+    storedDevice: string | undefined,
+  ) {
+    select.innerHTML = ""
 
-    const autoOpt = document.createElement("option");
-    autoOpt.value = "auto";
-    autoOpt.textContent = `${detectedName} ✱`;
-    select.appendChild(autoOpt);
+    const autoOpt = document.createElement("option")
+    autoOpt.value = "auto"
+    autoOpt.textContent = `${detectedName} ✱`
+    select.appendChild(autoOpt)
 
-    const customOpt = document.createElement("option");
-    customOpt.value = "custom";
-    customOpt.textContent = "Custom";
-    select.appendChild(customOpt);
+    const customOpt = document.createElement("option")
+    customOpt.value = "custom"
+    customOpt.textContent = "Custom"
+    select.appendChild(customOpt)
 
-    appendDeviceOptgroups(select, storedDevice);
+    appendDeviceOptgroups(select, storedDevice)
 
-    select.value = storedDevice || "auto";
-    select.disabled = false;
-    fitSelectWidth(select);
+    select.value = storedDevice || "auto"
+    select.disabled = false
+    fitSelectWidth(select)
   }
 
   function updateHardwarePanel(hw: HardwareInfo) {
-    const overrides = getHardwareOverrides();
+    const overrides = getHardwareOverrides()
 
-    const deviceSelect = $<HTMLSelectElement>("#hw-device-select");
+    const deviceSelect = $<HTMLSelectElement>("#hw-device-select")
     if (deviceSelect) {
-      populateDeviceSelect(deviceSelect, getDisplayName(detectedHW), overrides.device);
+      populateDeviceSelect(
+        deviceSelect,
+        getDisplayName(detectedHW),
+        overrides.device,
+      )
     }
-    $("#hw-gpu")!.classList.replace("text-muted", "text-secondary");
+    $("#hw-gpu")!.classList.replace("text-muted", "text-secondary")
 
-    const effectiveRam = hw.ramGB ?? hw.totalUsableRAM;
-    const ramSelect = $<HTMLSelectElement>("#hw-ram-select");
+    const effectiveRam = hw.ramGB ?? hw.totalUsableRAM
+    const ramSelect = $<HTMLSelectElement>("#hw-ram-select")
     if (ramSelect && effectiveRam) {
-      populateSelect(ramSelect, RAM_OPTIONS, detectedHW.ramGB, overrides.ramGB ?? effectiveRam, (v) => `${v} GB`);
-      ramSelect.disabled = false;
+      populateSelect(
+        ramSelect,
+        RAM_OPTIONS,
+        detectedHW.ramGB,
+        overrides.ramGB ?? effectiveRam,
+        (v) => `${v} GB`,
+      )
+      ramSelect.disabled = false
     }
-    $("#hw-ram")!.classList.replace("text-muted", "text-secondary");
+    $("#hw-ram")!.classList.replace("text-muted", "text-secondary")
 
-    const vramLabel = $("#hw-vram-label");
-    if (vramLabel) vramLabel.textContent = "VRAM";
+    const vramLabel = $("#hw-vram-label")
+    if (vramLabel) vramLabel.textContent = "VRAM"
 
-    const sysramContainer = $("#hw-sysram");
-    const sysramSelect = $<HTMLSelectElement>("#hw-sysram-select");
-    const sysramTooltip = sysramContainer?.querySelector("[data-tooltip]") as HTMLElement | null;
+    const sysramContainer = $("#hw-sysram")
+    const sysramSelect = $<HTMLSelectElement>("#hw-sysram-select")
+    const sysramTooltip = sysramContainer?.querySelector(
+      "[data-tooltip]",
+    ) as HTMLElement | null
     if (sysramContainer && sysramSelect) {
       if (hw.isMobile) {
-        sysramContainer.classList.add("hidden");
+        sysramContainer.classList.add("hidden")
       } else if (hw.isAppleSilicon) {
-        sysramContainer.classList.remove("hidden");
-        sysramSelect.innerHTML = "";
-        const opt = document.createElement("option");
-        opt.value = "";
-        opt.textContent = `${hw.totalUsableRAM ?? "—"} GB`;
-        sysramSelect.appendChild(opt);
-        sysramSelect.disabled = true;
-        sysramSelect.classList.add("opacity-50", "cursor-not-allowed");
-        fitSelectWidth(sysramSelect);
+        sysramContainer.classList.remove("hidden")
+        sysramSelect.innerHTML = ""
+        const opt = document.createElement("option")
+        opt.value = ""
+        opt.textContent = `${hw.totalUsableRAM ?? "—"} GB`
+        sysramSelect.appendChild(opt)
+        sysramSelect.disabled = true
+        sysramSelect.classList.add("opacity-50", "cursor-not-allowed")
+        fitSelectWidth(sysramSelect)
         if (sysramTooltip) {
-          sysramTooltip.setAttribute("data-tooltip", "Unified memory — Apple Silicon shares RAM between CPU and GPU. No separate system RAM available for offloading");
+          sysramTooltip.setAttribute(
+            "data-tooltip",
+            "Unified memory — Apple Silicon shares RAM between CPU and GPU. No separate system RAM available for offloading",
+          )
         }
       } else {
-        sysramContainer.classList.remove("hidden");
-        sysramSelect.disabled = false;
-        sysramSelect.classList.remove("opacity-50", "cursor-not-allowed");
-        const raw = detectedHW.deviceMemoryRaw;
-        const isGte8 = raw === null || raw >= 8;
-        const selected = overrides.systemRAM ?? hw.systemRAM ?? 16;
+        sysramContainer.classList.remove("hidden")
+        sysramSelect.disabled = false
+        sysramSelect.classList.remove("opacity-50", "cursor-not-allowed")
+        const raw = detectedHW.deviceMemoryRaw
+        const isGte8 = raw === null || raw >= 8
+        const selected = overrides.systemRAM ?? hw.systemRAM ?? 16
 
-        sysramSelect.innerHTML = "";
-        const optGte8 = document.createElement("option");
-        optGte8.value = "16";
-        optGte8.textContent = isGte8 ? "≥8 GB ✱" : "≥8 GB";
-        sysramSelect.appendChild(optGte8);
+        sysramSelect.innerHTML = ""
+        const optGte8 = document.createElement("option")
+        optGte8.value = "16"
+        optGte8.textContent = isGte8 ? "≥8 GB ✱" : "≥8 GB"
+        sysramSelect.appendChild(optGte8)
 
-        const optLt8 = document.createElement("option");
-        optLt8.value = "4";
-        optLt8.textContent = !isGte8 ? "<8 GB ✱" : "<8 GB";
-        sysramSelect.appendChild(optLt8);
+        const optLt8 = document.createElement("option")
+        optLt8.value = "4"
+        optLt8.textContent = !isGte8 ? "<8 GB ✱" : "<8 GB"
+        sysramSelect.appendChild(optLt8)
 
-        const sep = document.createElement("option");
-        sep.disabled = true;
-        sep.textContent = "───";
-        sysramSelect.appendChild(sep);
+        const sep = document.createElement("option")
+        sep.disabled = true
+        sep.textContent = "───"
+        sysramSelect.appendChild(sep)
 
         for (const v of [8, 16, 32, 64, 128]) {
-          const opt = document.createElement("option");
-          opt.value = String(v);
-          opt.textContent = `${v} GB`;
-          sysramSelect.appendChild(opt);
+          const opt = document.createElement("option")
+          opt.value = String(v)
+          opt.textContent = `${v} GB`
+          sysramSelect.appendChild(opt)
         }
 
-        sysramSelect.value = String(selected);
-        fitSelectWidth(sysramSelect);
+        sysramSelect.value = String(selected)
+        fitSelectWidth(sysramSelect)
         if (sysramTooltip) {
-          sysramTooltip.setAttribute("data-tooltip", "System RAM — used for CPU offloading when model doesn't fit in VRAM. More RAM = bigger models via offloading (slower)");
+          sysramTooltip.setAttribute(
+            "data-tooltip",
+            "System RAM — used for CPU offloading when model doesn't fit in VRAM. More RAM = bigger models via offloading (slower)",
+          )
         }
       }
     }
 
-    const effectiveBw = hw.memoryBandwidth;
+    const effectiveBw = hw.memoryBandwidth
     if (effectiveBw) {
-      $("#hw-bw")!.classList.remove("hidden");
-      const bwSelect = $<HTMLSelectElement>("#hw-bw-select");
+      $("#hw-bw")!.classList.remove("hidden")
+      const bwSelect = $<HTMLSelectElement>("#hw-bw-select")
       if (bwSelect) {
-        populateSelect(bwSelect, BW_OPTIONS, detectedHW.memoryBandwidth, overrides.memoryBandwidth ?? effectiveBw, (v) => `~${v} GB/s`);
+        populateSelect(
+          bwSelect,
+          BW_OPTIONS,
+          detectedHW.memoryBandwidth,
+          overrides.memoryBandwidth ?? effectiveBw,
+          (v) => `~${v} GB/s`,
+        )
       }
     } else {
-      $("#hw-bw")!.classList.add("hidden");
+      $("#hw-bw")!.classList.add("hidden")
     }
 
     if (hw.gpuCores) {
-      $("#hw-gpu-cores")!.classList.remove("hidden");
-      $("#hw-gpu-cores-text")!.textContent = `${hw.gpuCores.toLocaleString()}`;
+      $("#hw-gpu-cores")!.classList.remove("hidden")
+      $("#hw-gpu-cores-text")!.textContent = `${hw.gpuCores.toLocaleString()}`
     } else {
-      $("#hw-gpu-cores")!.classList.add("hidden");
+      $("#hw-gpu-cores")!.classList.add("hidden")
     }
 
-    $("#hw-notice")!.classList.remove("invisible");
+    $("#hw-notice")!.classList.remove("invisible")
 
-    const webgpuBadge = $("#hw-webgpu-badge")!;
+    const webgpuBadge = $("#hw-webgpu-badge")!
     if (hw.webgpu) {
-      webgpuBadge.className = "inline-flex items-center gap-1 rounded-full border border-accent/30 bg-accent/10 px-1.5 py-px text-[10px] font-medium text-accent";
-      webgpuBadge.setAttribute("data-tooltip", "Your browser supports WebGPU — enables more accurate GPU detection and in-browser inference");
-      webgpuBadge.innerHTML = `<svg class="h-2.5 w-2.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg><span>WebGPU</span>`;
+      webgpuBadge.className =
+        "inline-flex items-center gap-1 rounded-full border border-accent/30 bg-accent/10 px-1.5 py-px text-[10px] font-medium text-accent"
+      webgpuBadge.setAttribute(
+        "data-tooltip",
+        "Your browser supports WebGPU — enables more accurate GPU detection and in-browser inference",
+      )
+      webgpuBadge.innerHTML = `<svg class="h-2.5 w-2.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg><span>WebGPU</span>`
     } else {
-      webgpuBadge.className = "inline-flex items-center gap-1 rounded-full border border-red-500/30 bg-red-500/10 px-1.5 py-px text-[10px] font-medium text-red-400";
-      webgpuBadge.setAttribute("data-tooltip", "Your browser does not support WebGPU — hardware detection may be less accurate. Try Chrome or Edge for better results");
-      webgpuBadge.innerHTML = `<svg class="h-2.5 w-2.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg><span>WebGPU</span>`;
+      webgpuBadge.className =
+        "inline-flex items-center gap-1 rounded-full border border-red-500/30 bg-red-500/10 px-1.5 py-px text-[10px] font-medium text-red-400"
+      webgpuBadge.setAttribute(
+        "data-tooltip",
+        "Your browser does not support WebGPU — hardware detection may be less accurate. Try Chrome or Edge for better results",
+      )
+      webgpuBadge.innerHTML = `<svg class="h-2.5 w-2.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg><span>WebGPU</span>`
     }
   }
 
   function handleDeviceChange(deviceKey: string) {
     if (deviceKey === "custom") {
-      const prev = getHardwareOverrides();
-      prev.device = "custom";
-      saveHardwareOverrides(prev);
-      return;
+      const prev = getHardwareOverrides()
+      prev.device = "custom"
+      saveHardwareOverrides(prev)
+      return
     }
 
-    const params = buildFilterQueryString();
-    const qs = params.toString() ? `?${params.toString()}` : "";
+    const params = buildFilterQueryString()
+    const qs = params.toString() ? `?${params.toString()}` : ""
 
     if (deviceKey === "auto") {
-      saveHardwareOverrides({});
-      currentHW = { ...detectedHW };
-      updateHardwarePanel(currentHW);
-      updateAllCards(currentHW);
-      history.pushState({}, "", `/${qs}`);
-      return;
+      saveHardwareOverrides({})
+      currentHW = { ...detectedHW }
+      updateHardwarePanel(currentHW)
+      updateAllCards(currentHW)
+      history.pushState({}, "", `/${qs}`)
+      return
     }
 
-    const deviceOverrides = getDeviceOverrides(deviceKey);
-    if (!deviceOverrides) return;
+    const deviceOverrides = getDeviceOverrides(deviceKey)
+    if (!deviceOverrides) return
 
-    const prev = getHardwareOverrides();
-    if (prev.systemRAM !== undefined) deviceOverrides.systemRAM = prev.systemRAM;
+    const prev = getHardwareOverrides()
+    if (prev.systemRAM !== undefined) deviceOverrides.systemRAM = prev.systemRAM
 
-    saveHardwareOverrides(deviceOverrides);
-    currentHW = applyOverrides(detectedHW, deviceOverrides);
-    updateHardwarePanel(currentHW);
-    updateAllCards(currentHW);
+    saveHardwareOverrides(deviceOverrides)
+    currentHW = applyOverrides(detectedHW, deviceOverrides)
+    updateHardwarePanel(currentHW)
+    updateAllCards(currentHW)
 
-    const slug = deviceKeyToSlug(deviceKey);
-    history.pushState({}, "", `/device/${slug}${qs}`);
+    const slug = deviceKeyToSlug(deviceKey)
+    history.pushState({}, "", `/device/${slug}${qs}`)
   }
 
   function setupHardwareEditing() {
-    const deviceSelect = $<HTMLSelectElement>("#hw-device-select");
-    const ramSelect = $<HTMLSelectElement>("#hw-ram-select");
-    const sysramSelect = $<HTMLSelectElement>("#hw-sysram-select");
-    const bwSelect = $<HTMLSelectElement>("#hw-bw-select");
+    const deviceSelect = $<HTMLSelectElement>("#hw-device-select")
+    const ramSelect = $<HTMLSelectElement>("#hw-ram-select")
+    const sysramSelect = $<HTMLSelectElement>("#hw-sysram-select")
+    const bwSelect = $<HTMLSelectElement>("#hw-bw-select")
 
     deviceSelect?.addEventListener("change", () => {
-      handleDeviceChange(deviceSelect.value);
-    });
+      handleDeviceChange(deviceSelect.value)
+    })
 
     function handleFieldChange() {
-      const overrides = getHardwareOverrides();
-      if (ramSelect?.value) overrides.ramGB = Number(ramSelect.value);
-      if (sysramSelect?.value) overrides.systemRAM = Number(sysramSelect.value);
-      if (bwSelect?.value) overrides.memoryBandwidth = Number(bwSelect.value);
+      const overrides = getHardwareOverrides()
+      if (ramSelect?.value) overrides.ramGB = Number(ramSelect.value)
+      if (sysramSelect?.value) overrides.systemRAM = Number(sysramSelect.value)
+      if (bwSelect?.value) overrides.memoryBandwidth = Number(bwSelect.value)
       if (!overrides.device || overrides.device === "auto") {
-        overrides.device = "custom";
-        const ds = $<HTMLSelectElement>("#hw-device-select");
-        if (ds) { ds.value = "custom"; fitSelectWidth(ds); }
+        overrides.device = "custom"
+        const ds = $<HTMLSelectElement>("#hw-device-select")
+        if (ds) {
+          ds.value = "custom"
+          fitSelectWidth(ds)
+        }
       }
-      saveHardwareOverrides(overrides);
-      currentHW = applyOverrides(detectedHW, overrides);
-      updateAllCards(currentHW);
+      saveHardwareOverrides(overrides)
+      currentHW = applyOverrides(detectedHW, overrides)
+      updateAllCards(currentHW)
     }
 
-    ramSelect?.addEventListener("change", () => { handleFieldChange(); fitSelectWidth(ramSelect); });
-    sysramSelect?.addEventListener("change", () => { handleFieldChange(); fitSelectWidth(sysramSelect); });
-    bwSelect?.addEventListener("change", () => { handleFieldChange(); fitSelectWidth(bwSelect); });
+    ramSelect?.addEventListener("change", () => {
+      handleFieldChange()
+      fitSelectWidth(ramSelect)
+    })
+    sysramSelect?.addEventListener("change", () => {
+      handleFieldChange()
+      fitSelectWidth(sysramSelect)
+    })
+    bwSelect?.addEventListener("change", () => {
+      handleFieldChange()
+      fitSelectWidth(bwSelect)
+    })
   }
 
-  function updateModelCard(card: HTMLElement, hw: HardwareInfo, quantIndex: number = 0) {
-    const quants = JSON.parse(card.dataset.quants || "[]");
-    const quant = quants[quantIndex] || quants[0];
-    if (!quant) return;
+  function updateModelCard(
+    card: HTMLElement,
+    hw: HardwareInfo,
+    quantIndex: number = 0,
+  ) {
+    const quants = JSON.parse(card.dataset.quants || "[]")
+    const quant = quants[quantIndex] || quants[0]
+    if (!quant) return
 
-    const vram = quant.vramGB;
-    const params = parseFloat(card.dataset.params || "0");
-    const { status, toksPerSec: toks, memPct, score, grade } = evaluateModelComplete(vram, hw, params);
-    const gradeInfo = GRADES[grade];
+    const vram = quant.vramGB
+    const params = parseFloat(card.dataset.params || "0")
+    const {
+      status,
+      toksPerSec: toks,
+      memPct,
+      score,
+      grade,
+    } = evaluateModelComplete(vram, hw, params)
+    const gradeInfo = GRADES[grade]
 
-    const label = card.querySelector<HTMLElement>("[data-status-label]");
+    const label = card.querySelector<HTMLElement>("[data-status-label]")
     if (label) {
-      label.textContent = gradeInfo.label;
-      label.style.color = gradeInfo.color;
+      label.textContent = gradeInfo.label
+      label.style.color = gradeInfo.color
     }
 
-    const scoreNumEl = card.querySelector<HTMLElement>("[data-score-num]");
+    const scoreNumEl = card.querySelector<HTMLElement>("[data-score-num]")
     if (scoreNumEl) {
-      scoreNumEl.textContent = `${score}/100`;
-      scoreNumEl.style.color = gradeInfo.color;
+      scoreNumEl.textContent = `${score}/100`
+      scoreNumEl.style.color = gradeInfo.color
     }
 
-    card.dataset.grade = grade;
+    card.dataset.grade = grade
 
-    const memPill = card.querySelector<HTMLElement>("[data-mem-pct-pill]");
+    const memPill = card.querySelector<HTMLElement>("[data-mem-pct-pill]")
     if (memPill) {
       if (memPct !== null) {
-        memPill.classList.remove("hidden");
+        memPill.classList.remove("hidden")
         if (status === "can-run-slow") {
-          memPill.textContent = `${memPct}% ↗ RAM`;
-          memPill.className = "rounded-full bg-offload/15 px-1.5 py-px text-[11px] font-medium text-offload";
+          memPill.textContent = `${memPct}% ↗ RAM`
+          memPill.className =
+            "rounded-full bg-offload/15 px-1.5 py-px text-[11px] font-medium text-offload"
         } else if (memPct > 100) {
-          memPill.textContent = `${memPct}%`;
-          memPill.className = "rounded-full bg-cannot-run/15 px-1.5 py-px text-[11px] font-medium text-cannot-run";
+          memPill.textContent = `${memPct}%`
+          memPill.className =
+            "rounded-full bg-cannot-run/15 px-1.5 py-px text-[11px] font-medium text-cannot-run"
         } else if (memPct > 75) {
-          memPill.textContent = `${memPct}%`;
-          memPill.className = "rounded-full bg-maybe/15 px-1.5 py-px text-[11px] font-medium text-maybe";
+          memPill.textContent = `${memPct}%`
+          memPill.className =
+            "rounded-full bg-maybe/15 px-1.5 py-px text-[11px] font-medium text-maybe"
         } else {
-          memPill.textContent = `${memPct}%`;
-          memPill.className = "rounded-full bg-can-run/15 px-1.5 py-px text-[11px] font-medium text-can-run";
+          memPill.textContent = `${memPct}%`
+          memPill.className =
+            "rounded-full bg-can-run/15 px-1.5 py-px text-[11px] font-medium text-can-run"
         }
       }
     }
-    const memDetail = card.querySelector<HTMLElement>("[data-mem-pct-detail]");
+    const memDetail = card.querySelector<HTMLElement>("[data-mem-pct-detail]")
     if (memDetail) {
       if (memPct !== null) {
         if (status === "can-run-slow") {
-          memDetail.textContent = `${memPct}% ↗ RAM`;
-          memDetail.style.color = "var(--color-offload)";
+          memDetail.textContent = `${memPct}% ↗ RAM`
+          memDetail.style.color = "var(--color-offload)"
         } else {
-          memDetail.textContent = `${memPct}%`;
-          if (memPct > 100) memDetail.style.color = "var(--color-cannot-run)";
-          else if (memPct > 75) memDetail.style.color = "var(--color-maybe)";
-          else memDetail.style.color = "var(--color-can-run)";
+          memDetail.textContent = `${memPct}%`
+          if (memPct > 100) memDetail.style.color = "var(--color-cannot-run)"
+          else if (memPct > 75) memDetail.style.color = "var(--color-maybe)"
+          else memDetail.style.color = "var(--color-can-run)"
         }
       } else {
-        memDetail.textContent = "—";
+        memDetail.textContent = "—"
       }
     }
 
-    const tokEl = card.querySelector<HTMLElement>("[data-tok-speed]");
+    const tokEl = card.querySelector<HTMLElement>("[data-tok-speed]")
     if (tokEl) {
       if (toks !== null && status !== "cannot-run") {
-        tokEl.textContent = `~${toks} tok/s`;
-        if (toks >= 60) tokEl.className = "font-mono text-[13px] text-can-run";
-        else if (toks >= 30) tokEl.className = "font-mono text-[13px] text-can-run/70";
-        else if (toks >= 15) tokEl.className = "font-mono text-[13px] text-maybe";
-        else if (toks >= 5) tokEl.className = "font-mono text-[13px] text-maybe/70";
-        else tokEl.className = "font-mono text-[13px] text-cannot-run";
+        tokEl.textContent = `~${toks} tok/s`
+        if (toks >= 60) tokEl.className = "font-mono text-[13px] text-can-run"
+        else if (toks >= 30)
+          tokEl.className = "font-mono text-[13px] text-can-run/70"
+        else if (toks >= 15)
+          tokEl.className = "font-mono text-[13px] text-maybe"
+        else if (toks >= 5)
+          tokEl.className = "font-mono text-[13px] text-maybe/70"
+        else tokEl.className = "font-mono text-[13px] text-cannot-run"
       } else {
-        tokEl.textContent = "0 tok/s";
-        tokEl.className = "font-mono text-[13px] text-cannot-run/70";
+        tokEl.textContent = "0 tok/s"
+        tokEl.className = "font-mono text-[13px] text-cannot-run/70"
       }
     }
 
-    const quantBtns = card.querySelectorAll<HTMLElement>("[data-quant-btn]");
+    const quantBtns = card.querySelectorAll<HTMLElement>("[data-quant-btn]")
     quantBtns.forEach((btn, i) => {
       if (i === quantIndex) {
-        btn.className = "quant-btn rounded px-1.5 py-0.5 text-xs font-mono transition-colors border border-accent/30 bg-accent/10 text-accent";
+        btn.className =
+          "quant-btn rounded px-1.5 py-0.5 text-xs font-mono transition-colors border border-accent/30 bg-accent/10 text-accent"
       } else {
-        btn.className = "quant-btn rounded px-1.5 py-0.5 text-xs font-mono transition-colors border border-transparent text-muted hover:text-secondary";
+        btn.className =
+          "quant-btn rounded px-1.5 py-0.5 text-xs font-mono transition-colors border border-transparent text-muted hover:text-secondary"
       }
-    });
+    })
 
-    const vramVal = card.querySelector<HTMLElement>("[data-vram-val]");
-    if (vramVal) vramVal.textContent = String(vram);
+    const vramVal = card.querySelector<HTMLElement>("[data-vram-val]")
+    if (vramVal) vramVal.textContent = String(vram)
 
-    card.dataset.status = status;
-    card.dataset.score = String(score);
-    card.dataset.selectedQuant = String(quantIndex);
+    card.dataset.status = status
+    card.dataset.score = String(score)
+    card.dataset.selectedQuant = String(quantIndex)
   }
 
   function updateAllCards(hw: HardwareInfo) {
     $$("[data-model-id]").forEach((card) => {
-      const qi = parseInt(card.dataset.selectedQuant || "2");
-      updateModelCard(card, hw, qi);
-    });
-    updateSummary();
-    sortAndAnimateCards();
+      const qi = parseInt(card.dataset.selectedQuant || "2")
+      updateModelCard(card, hw, qi)
+    })
+    updateSummary()
+    sortAndAnimateCards()
   }
 
   function updateSummary() {
-    const counts: Record<string, number> = { S: 0, A: 0, B: 0, C: 0, D: 0, F: 0 };
-    $$("[data-model-id]").forEach(c => {
-      const g = c.dataset.grade || "?";
-      if (g in counts) counts[g]++;
-    });
-    for (const [grade, count] of Object.entries(counts)) {
-      $("#count-" + grade.toLowerCase())!.textContent = String(count);
+    const counts: Record<string, number> = {
+      S: 0,
+      A: 0,
+      B: 0,
+      C: 0,
+      D: 0,
+      F: 0,
     }
-    $("#summary-bar")!.classList.remove("invisible");
+    $$("[data-model-id]").forEach((c) => {
+      const g = c.dataset.grade || "?"
+      if (g in counts) counts[g]++
+    })
+    for (const [grade, count] of Object.entries(counts)) {
+      $("#count-" + grade.toLowerCase())!.textContent = String(count)
+    }
+    $("#summary-bar")!.classList.remove("invisible")
   }
 
-  let currentSort = "score";
+  let currentSort = "score"
 
   function sortAndAnimateCards() {
-    const order: Record<string, number> = { "can-run": 0, "tight": 1, "can-run-slow": 2, "unknown": 3, "cannot-run": 4 };
+    const order: Record<string, number> = {
+      "can-run": 0,
+      tight: 1,
+      "can-run-slow": 2,
+      unknown: 3,
+      "cannot-run": 4,
+    }
 
     function sortComparator(a: HTMLElement, b: HTMLElement): number {
-      const cardA = a.querySelector<HTMLElement>("[data-model-id]")!;
-      const cardB = b.querySelector<HTMLElement>("[data-model-id]")!;
+      const cardA = a.querySelector<HTMLElement>("[data-model-id]")!
+      const cardB = b.querySelector<HTMLElement>("[data-model-id]")!
 
       switch (currentSort) {
         case "params-asc":
-          return parseFloat(cardA.dataset.params || "0") - parseFloat(cardB.dataset.params || "0");
+          return (
+            parseFloat(cardA.dataset.params || "0") -
+            parseFloat(cardB.dataset.params || "0")
+          )
         case "params-desc":
-          return parseFloat(cardB.dataset.params || "0") - parseFloat(cardA.dataset.params || "0");
+          return (
+            parseFloat(cardB.dataset.params || "0") -
+            parseFloat(cardA.dataset.params || "0")
+          )
         case "release": {
-          const ra = cardA.dataset.release || "";
-          const rb = cardB.dataset.release || "";
-          return rb.localeCompare(ra);
+          const ra = cardA.dataset.release || ""
+          const rb = cardB.dataset.release || ""
+          return rb.localeCompare(ra)
         }
         case "context":
-          return parseInt(cardB.dataset.context || "0") - parseInt(cardA.dataset.context || "0");
+          return (
+            parseInt(cardB.dataset.context || "0") -
+            parseInt(cardA.dataset.context || "0")
+          )
         case "toks": {
-          const tokA = cardA.querySelector<HTMLElement>("[data-tok-speed]")?.textContent || "";
-          const tokB = cardB.querySelector<HTMLElement>("[data-tok-speed]")?.textContent || "";
-          const tA = parseInt(tokA.replace(/[^0-9]/g, "")) || 0;
-          const tB = parseInt(tokB.replace(/[^0-9]/g, "")) || 0;
-          return tB - tA;
+          const tokA =
+            cardA.querySelector<HTMLElement>("[data-tok-speed]")?.textContent ||
+            ""
+          const tokB =
+            cardB.querySelector<HTMLElement>("[data-tok-speed]")?.textContent ||
+            ""
+          const tA = parseInt(tokA.replace(/[^0-9]/g, "")) || 0
+          const tB = parseInt(tokB.replace(/[^0-9]/g, "")) || 0
+          return tB - tA
         }
         case "vram": {
-          const qA = JSON.parse(cardA.dataset.quants || "[]");
-          const qB = JSON.parse(cardB.dataset.quants || "[]");
-          const vA = qA[parseInt(cardA.dataset.selectedQuant || "2")]?.vramGB || 0;
-          const vB = qB[parseInt(cardB.dataset.selectedQuant || "2")]?.vramGB || 0;
-          return vA - vB;
+          const qA = JSON.parse(cardA.dataset.quants || "[]")
+          const qB = JSON.parse(cardB.dataset.quants || "[]")
+          const vA =
+            qA[parseInt(cardA.dataset.selectedQuant || "2")]?.vramGB || 0
+          const vB =
+            qB[parseInt(cardB.dataset.selectedQuant || "2")]?.vramGB || 0
+          return vA - vB
+        }
+        case "downloads": {
+          const dA = parseInt(cardA.dataset.downloads || "0")
+          const dB = parseInt(cardB.dataset.downloads || "0")
+          return dB - dA
         }
         default: {
-          const sa = order[cardA.dataset.status || "unknown"] ?? 2;
-          const sb = order[cardB.dataset.status || "unknown"] ?? 2;
-          if (sa !== sb) return sa - sb;
-          const scoreA = parseInt(cardA.dataset.score || "0");
-          const scoreB = parseInt(cardB.dataset.score || "0");
-          if (scoreA !== scoreB) return scoreB - scoreA;
-          return parseFloat(cardA.dataset.params || "0") - parseFloat(cardB.dataset.params || "0");
+          const sa = order[cardA.dataset.status || "unknown"] ?? 2
+          const sb = order[cardB.dataset.status || "unknown"] ?? 2
+          if (sa !== sb) return sa - sb
+          const scoreA = parseInt(cardA.dataset.score || "0")
+          const scoreB = parseInt(cardB.dataset.score || "0")
+          if (scoreA !== scoreB) return scoreB - scoreA
+          return (
+            parseFloat(cardA.dataset.params || "0") -
+            parseFloat(cardB.dataset.params || "0")
+          )
         }
       }
     }
 
-    let animIdx = 0;
+    let animIdx = 0
     for (const gridId of ["#models-grid", "#models-grid-rest"]) {
-      const grid = $(gridId);
-      if (!grid) continue;
-      const links = Array.from(grid.children) as HTMLElement[];
-      links.sort(sortComparator);
+      const grid = $(gridId)
+      if (!grid) continue
+      const links = Array.from(grid.children) as HTMLElement[]
+      links.sort(sortComparator)
       links.forEach((link) => {
-        const card = link.querySelector<HTMLElement>("[data-model-id]");
+        const card = link.querySelector<HTMLElement>("[data-model-id]")
         if (card) {
-          card.style.animationDelay = `${animIdx * 25}ms`;
-          card.classList.add("fade-in");
+          card.style.animationDelay = `${animIdx * 25}ms`
+          card.classList.add("fade-in")
         }
-        grid.appendChild(link);
-        animIdx++;
-      });
+        grid.appendChild(link)
+        animIdx++
+      })
     }
   }
 
   // ── Filters ────────────────────────────────────────────────
 
-  let activeStatusFilter = "all";
-  let activeUseFilter = "all";
-  let activeProviderFilter = "all";
-  let activeLicenseFilter = "all";
-  let searchQuery = "";
+  let activeStatusFilter = "all"
+  let activeUseFilter = "all"
+  let activeProviderFilter = "all"
+  let activeLicenseFilter = "all"
+  let searchQuery = ""
 
   function applyFilters() {
-    const query = searchQuery.toLowerCase();
-    let featuredVisible = 0;
-    let restVisible = 0;
+    const query = searchQuery.toLowerCase()
+    let featuredVisible = 0
+    let restVisible = 0
 
-    $$("#models-grid > a, #models-grid-rest > a").forEach(link => {
-      const card = link.querySelector<HTMLElement>("[data-model-id]");
-      if (!card) return;
-      const grade = card.dataset.grade || "?";
-      const uses = card.dataset.uses || "";
-      const provider = card.dataset.provider || "";
-      const name = (card.dataset.modelName || "").toLowerCase();
-      const isFeatured = card.dataset.featured === "true";
-      const license = card.dataset.license || "";
-      const isCommercial = card.dataset.commercial === "true";
-      let show = true;
+    $$("#models-grid > a, #models-grid-rest > a").forEach((link) => {
+      const card = link.querySelector<HTMLElement>("[data-model-id]")
+      if (!card) return
+      const grade = card.dataset.grade || "?"
+      const uses = card.dataset.uses || ""
+      const provider = card.dataset.provider || ""
+      const name = (card.dataset.modelName || "").toLowerCase()
+      const isFeatured = card.dataset.featured === "true"
+      const license = card.dataset.license || ""
+      const isCommercial = card.dataset.commercial === "true"
+      let show = true
 
-      if (query && !name.includes(query)) show = false;
+      if (query && !name.includes(query)) show = false
       if (activeStatusFilter === "featured") {
-        if (!isFeatured) show = false;
+        if (!isFeatured) show = false
       } else if (activeStatusFilter === "can-run") {
-        if (!["S", "A", "B"].includes(grade)) show = false;
+        if (!["S", "A", "B"].includes(grade)) show = false
       } else if (activeStatusFilter === "tight") {
-        if (!["C", "D"].includes(grade)) show = false;
+        if (!["C", "D"].includes(grade)) show = false
       } else if (activeStatusFilter === "cannot-run") {
-        if (grade !== "F") show = false;
+        if (grade !== "F") show = false
       }
-      if (activeUseFilter !== "all" && !uses.includes(activeUseFilter)) show = false;
-      if (activeProviderFilter !== "all" && provider !== activeProviderFilter) show = false;
-      if (activeLicenseFilter === "commercial" && !isCommercial) show = false;
-      else if (activeLicenseFilter === "non-commercial" && isCommercial) show = false;
-      else if (activeLicenseFilter !== "all" && activeLicenseFilter !== "commercial" && activeLicenseFilter !== "non-commercial" && license !== activeLicenseFilter) show = false;
+      if (activeUseFilter !== "all" && !uses.includes(activeUseFilter))
+        show = false
+      if (activeProviderFilter !== "all" && provider !== activeProviderFilter)
+        show = false
+      if (activeLicenseFilter === "commercial" && !isCommercial) show = false
+      else if (activeLicenseFilter === "non-commercial" && isCommercial)
+        show = false
+      else if (
+        activeLicenseFilter !== "all" &&
+        activeLicenseFilter !== "commercial" &&
+        activeLicenseFilter !== "non-commercial" &&
+        license !== activeLicenseFilter
+      )
+        show = false
 
-      link.style.display = show ? "" : "none";
+      link.style.display = show ? "" : "none"
       if (show) {
-        if (isFeatured) featuredVisible++;
-        else restVisible++;
+        if (isFeatured) featuredVisible++
+        else restVisible++
       }
-    });
+    })
 
-    const totalVisible = featuredVisible + restVisible;
-    const divider = $("#rest-divider");
-    const featuredGrid = $("#models-grid");
-    const restGrid = $("#models-grid-rest");
-    const noResults = $("#no-results");
+    const totalVisible = featuredVisible + restVisible
+    const divider = $("#rest-divider")
+    const featuredGrid = $("#models-grid")
+    const restGrid = $("#models-grid-rest")
+    const noResults = $("#no-results")
 
-    if (divider) divider.style.display = (featuredVisible === 0 || restVisible === 0) ? "none" : "";
-    if (featuredGrid) featuredGrid.style.display = featuredVisible === 0 ? "none" : "";
-    if (restGrid) restGrid.style.display = restVisible === 0 ? "none" : "";
-    if (noResults) noResults.style.display = totalVisible === 0 ? "" : "none";
-    noResults?.classList.toggle("hidden", totalVisible > 0);
+    if (divider)
+      divider.style.display =
+        featuredVisible === 0 || restVisible === 0 ? "none" : ""
+    if (featuredGrid)
+      featuredGrid.style.display = featuredVisible === 0 ? "none" : ""
+    if (restGrid) restGrid.style.display = restVisible === 0 ? "none" : ""
+    if (noResults) noResults.style.display = totalVisible === 0 ? "" : "none"
+    noResults?.classList.toggle("hidden", totalVisible > 0)
   }
 
   function resetAllFilters() {
-    const searchInput = $<HTMLInputElement>("#search-input");
-    const statusSelect = $<HTMLSelectElement>("#filter-status");
-    const useSelect = $<HTMLSelectElement>("#filter-use");
-    const providerSelect = $<HTMLSelectElement>("#filter-provider");
-    const licenseSelect = $<HTMLSelectElement>("#filter-license");
+    const searchInput = $<HTMLInputElement>("#search-input")
+    const statusSelect = $<HTMLSelectElement>("#filter-status")
+    const useSelect = $<HTMLSelectElement>("#filter-use")
+    const providerSelect = $<HTMLSelectElement>("#filter-provider")
+    const licenseSelect = $<HTMLSelectElement>("#filter-license")
 
-    searchQuery = "";
-    activeStatusFilter = "all";
-    activeUseFilter = "all";
-    activeProviderFilter = "all";
-    activeLicenseFilter = "all";
+    searchQuery = ""
+    activeStatusFilter = "all"
+    activeUseFilter = "all"
+    activeProviderFilter = "all"
+    activeLicenseFilter = "all"
 
-    if (searchInput) searchInput.value = "";
-    if (statusSelect) statusSelect.value = "all";
-    if (useSelect) useSelect.value = "all";
-    if (providerSelect) providerSelect.value = "all";
-    if (licenseSelect) licenseSelect.value = "all";
+    if (searchInput) searchInput.value = ""
+    if (statusSelect) statusSelect.value = "all"
+    if (useSelect) useSelect.value = "all"
+    if (providerSelect) providerSelect.value = "all"
+    if (licenseSelect) licenseSelect.value = "all"
 
-    applyFilters();
-    syncFiltersToURL();
+    applyFilters()
+    syncFiltersToURL()
   }
 
   function setupFilters() {
-    const statusSelect = $<HTMLSelectElement>("#filter-status");
-    const useSelect = $<HTMLSelectElement>("#filter-use");
-    const providerSelect = $<HTMLSelectElement>("#filter-provider");
-    const licenseSelect = $<HTMLSelectElement>("#filter-license");
-    const resetBtn = $("#reset-filters");
+    const statusSelect = $<HTMLSelectElement>("#filter-status")
+    const useSelect = $<HTMLSelectElement>("#filter-use")
+    const providerSelect = $<HTMLSelectElement>("#filter-provider")
+    const licenseSelect = $<HTMLSelectElement>("#filter-license")
+    const resetBtn = $("#reset-filters")
 
     statusSelect?.addEventListener("change", () => {
-      activeStatusFilter = statusSelect.value;
-      applyFilters();
-      syncFiltersToURL();
-    });
+      activeStatusFilter = statusSelect.value
+      applyFilters()
+      syncFiltersToURL()
+    })
 
     useSelect?.addEventListener("change", () => {
-      activeUseFilter = useSelect.value;
-      applyFilters();
-      syncFiltersToURL();
-    });
+      activeUseFilter = useSelect.value
+      applyFilters()
+      syncFiltersToURL()
+    })
 
     providerSelect?.addEventListener("change", () => {
-      activeProviderFilter = providerSelect.value;
-      applyFilters();
-      syncFiltersToURL();
-    });
+      activeProviderFilter = providerSelect.value
+      applyFilters()
+      syncFiltersToURL()
+    })
 
     licenseSelect?.addEventListener("change", () => {
-      activeLicenseFilter = licenseSelect.value;
-      applyFilters();
-      syncFiltersToURL();
-    });
+      activeLicenseFilter = licenseSelect.value
+      applyFilters()
+      syncFiltersToURL()
+    })
 
-    resetBtn?.addEventListener("click", resetAllFilters);
+    resetBtn?.addEventListener("click", resetAllFilters)
   }
 
   // ── Quant Switching ────────────────────────────────────────
 
   function setupQuantButtons() {
-    $$("[data-quant-btn]").forEach(btn => {
+    $$("[data-quant-btn]").forEach((btn) => {
       btn.addEventListener("click", (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        const card = btn.closest<HTMLElement>("[data-model-id]");
-        if (!card || !currentHW) return;
-        const qi = parseInt(btn.dataset.quantBtn || "0");
-        updateModelCard(card, currentHW, qi);
-      });
-    });
+        e.preventDefault()
+        e.stopPropagation()
+        const card = btn.closest<HTMLElement>("[data-model-id]")
+        if (!card || !currentHW) return
+        const qi = parseInt(btn.dataset.quantBtn || "0")
+        updateModelCard(card, currentHW, qi)
+      })
+    })
   }
 
   function setupLicenseLinks() {
     document.addEventListener("click", (e) => {
-      const badge = (e.target as Element).closest<HTMLElement>("[data-license-link]");
-      if (!badge) return;
-      e.preventDefault();
-      e.stopPropagation();
-      window.location.href = badge.dataset.licenseLink!;
-    });
+      const badge = (e.target as Element).closest<HTMLElement>(
+        "[data-license-link]",
+      )
+      if (!badge) return
+      e.preventDefault()
+      e.stopPropagation()
+      window.location.href = badge.dataset.licenseLink!
+    })
   }
 
   // ── Init ───────────────────────────────────────────────────
 
   async function init() {
-    detectedHW = await detectHardware();
+    detectedHW = await detectHardware()
 
-    const main = document.getElementById("results");
-    const urlDeviceKey = main?.dataset.deviceKey;
+    const main = document.getElementById("results")
+    const urlDeviceKey = main?.dataset.deviceKey
 
     if (urlDeviceKey) {
-      const deviceOverrides = getDeviceOverrides(urlDeviceKey);
+      const deviceOverrides = getDeviceOverrides(urlDeviceKey)
       if (deviceOverrides) {
-        const prev = getHardwareOverrides();
-        if (prev.systemRAM !== undefined) deviceOverrides.systemRAM = prev.systemRAM;
-        saveHardwareOverrides(deviceOverrides);
+        const prev = getHardwareOverrides()
+        if (prev.systemRAM !== undefined)
+          deviceOverrides.systemRAM = prev.systemRAM
+        saveHardwareOverrides(deviceOverrides)
       }
     }
 
-    currentHW = applyOverrides(detectedHW);
-    updateHardwarePanel(currentHW);
-    updateAllCards(currentHW);
+    currentHW = applyOverrides(detectedHW)
+    updateHardwarePanel(currentHW)
+    updateAllCards(currentHW)
   }
 
   // ── Search ───────────────────────────────────────────────
 
   function setupSearch() {
-    const input = $<HTMLInputElement>("#search-input");
-    if (!input) return;
+    const input = $<HTMLInputElement>("#search-input")
+    if (!input) return
 
     input.addEventListener("input", () => {
-      searchQuery = input.value.trim();
-      applyFilters();
-      syncFiltersToURL();
-    });
+      searchQuery = input.value.trim()
+      applyFilters()
+      syncFiltersToURL()
+    })
 
     document.addEventListener("keydown", (e) => {
-      if (e.key === "/" && document.activeElement !== input && !(document.activeElement instanceof HTMLInputElement) && !(document.activeElement instanceof HTMLTextAreaElement) && !(document.activeElement instanceof HTMLSelectElement)) {
-        e.preventDefault();
-        input.focus();
+      if (
+        e.key === "/" &&
+        document.activeElement !== input &&
+        !(document.activeElement instanceof HTMLInputElement) &&
+        !(document.activeElement instanceof HTMLTextAreaElement) &&
+        !(document.activeElement instanceof HTMLSelectElement)
+      ) {
+        e.preventDefault()
+        input.focus()
       }
       if (e.key === "Escape" && document.activeElement === input) {
-        input.blur();
+        input.blur()
       }
-    });
+    })
   }
 
   // ── Sort ─────────────────────────────────────────────────
 
   function setupSort() {
-    const select = $<HTMLSelectElement>("#sort-select");
-    if (!select) return;
+    const select = $<HTMLSelectElement>("#sort-select")
+    if (!select) return
     select.addEventListener("change", () => {
-      currentSort = select.value;
-      sortAndAnimateCards();
-      syncFiltersToURL();
-    });
+      currentSort = select.value
+      sortAndAnimateCards()
+      syncFiltersToURL()
+    })
   }
 
   // ── View Mode Toggle ────────────────────────────────────
 
-  type ViewMode = "simple" | "advanced" | "list";
-  let viewMode: ViewMode = "list";
+  type ViewMode = "simple" | "advanced" | "list"
+  let viewMode: ViewMode = "list"
 
   function applyViewMode() {
-    const grids = [$("#models-grid"), $("#models-grid-rest")];
-    const iconSimple = $("#view-icon-simple");
-    const iconAdvanced = $("#view-icon-advanced");
-    const iconList = $("#view-icon-list");
-    const label = $("#view-label");
+    const grids = [$("#models-grid"), $("#models-grid-rest")]
+    const iconSimple = $("#view-icon-simple")
+    const iconAdvanced = $("#view-icon-advanced")
+    const iconList = $("#view-icon-list")
+    const label = $("#view-label")
 
-    $$("[data-advanced]").forEach(el => {
-      el.classList.toggle("hidden", viewMode !== "advanced");
-    });
+    $$("[data-advanced]").forEach((el) => {
+      el.classList.toggle("hidden", viewMode !== "advanced")
+    })
 
-    grids.forEach(grid => {
-      if (!grid) return;
+    grids.forEach((grid) => {
+      if (!grid) return
       if (viewMode === "list") {
-        grid.classList.remove("sm:grid-cols-2", "lg:grid-cols-3", "gap-3");
-        grid.classList.add("grid-cols-1", "list-view");
+        grid.classList.remove("sm:grid-cols-2", "lg:grid-cols-3", "gap-3")
+        grid.classList.add("grid-cols-1", "list-view")
       } else {
-        grid.classList.remove("grid-cols-1", "list-view");
-        grid.classList.add("sm:grid-cols-2", "lg:grid-cols-3", "gap-3");
+        grid.classList.remove("grid-cols-1", "list-view")
+        grid.classList.add("sm:grid-cols-2", "lg:grid-cols-3", "gap-3")
       }
-    });
-    $$(".model-card").forEach(card => {
-      card.classList.toggle("list-mode", viewMode === "list");
-    });
+    })
+    $$(".model-card").forEach((card) => {
+      card.classList.toggle("list-mode", viewMode === "list")
+    })
 
-    if (iconSimple) iconSimple.classList.toggle("hidden", viewMode !== "simple");
-    if (iconAdvanced) iconAdvanced.classList.toggle("hidden", viewMode !== "advanced");
-    if (iconList) iconList.classList.toggle("hidden", viewMode !== "list");
+    if (iconSimple) iconSimple.classList.toggle("hidden", viewMode !== "simple")
+    if (iconAdvanced)
+      iconAdvanced.classList.toggle("hidden", viewMode !== "advanced")
+    if (iconList) iconList.classList.toggle("hidden", viewMode !== "list")
     if (label) {
-      const labels: Record<ViewMode, string> = { simple: "Simple", advanced: "Advanced", list: "List" };
-      label.textContent = labels[viewMode];
+      const labels: Record<ViewMode, string> = {
+        simple: "Simple",
+        advanced: "Advanced",
+        list: "List",
+      }
+      label.textContent = labels[viewMode]
     }
   }
 
   function setupViewToggle() {
-    const btn = $("#view-toggle");
-    if (!btn) return;
+    const btn = $("#view-toggle")
+    if (!btn) return
 
-    const modes: ViewMode[] = ["simple", "advanced", "list"];
+    const modes: ViewMode[] = ["simple", "advanced", "list"]
 
     btn.addEventListener("click", () => {
-      const idx = modes.indexOf(viewMode);
-      viewMode = modes[(idx + 1) % modes.length];
-      localStorage.setItem("viewMode", viewMode);
-      applyViewMode();
-    });
+      const idx = modes.indexOf(viewMode)
+      viewMode = modes[(idx + 1) % modes.length]
+      localStorage.setItem("viewMode", viewMode)
+      applyViewMode()
+    })
   }
 
   // ── Keyboard Navigation ─────────────────────────────────
 
   function setupKeyboardNav() {
-    let focusedCardIndex = -1;
+    let focusedCardIndex = -1
 
     function getVisibleLinks(): HTMLElement[] {
       return $$("#models-grid > a, #models-grid-rest > a").filter(
-        (link) => link.style.display !== "none"
-      );
+        (link) => link.style.display !== "none",
+      )
     }
 
     function focusCard(index: number) {
-      const links = getVisibleLinks();
-      if (index < 0 || index >= links.length) return;
-      focusedCardIndex = index;
+      const links = getVisibleLinks()
+      if (index < 0 || index >= links.length) return
+      focusedCardIndex = index
       links.forEach((link, i) => {
-        const card = link.querySelector<HTMLElement>("[data-model-id]");
+        const card = link.querySelector<HTMLElement>("[data-model-id]")
         if (card) {
           if (i === index) {
-            card.classList.add("ring-1", "ring-accent/40");
-            link.scrollIntoView({ block: "nearest", behavior: "smooth" });
+            card.classList.add("ring-1", "ring-accent/40")
+            link.scrollIntoView({ block: "nearest", behavior: "smooth" })
           } else {
-            card.classList.remove("ring-1", "ring-accent/40");
+            card.classList.remove("ring-1", "ring-accent/40")
           }
         }
-      });
+      })
     }
 
     function clearFocus() {
-      focusedCardIndex = -1;
-      $$("[data-model-id]").forEach(card => {
-        card.classList.remove("ring-1", "ring-accent/40");
-      });
+      focusedCardIndex = -1
+      $$("[data-model-id]").forEach((card) => {
+        card.classList.remove("ring-1", "ring-accent/40")
+      })
     }
 
     document.addEventListener("keydown", (e) => {
-      const active = document.activeElement;
-      if (active instanceof HTMLInputElement || active instanceof HTMLTextAreaElement || active instanceof HTMLSelectElement) return;
+      const active = document.activeElement
+      if (
+        active instanceof HTMLInputElement ||
+        active instanceof HTMLTextAreaElement ||
+        active instanceof HTMLSelectElement
+      )
+        return
 
-      const links = getVisibleLinks();
+      const links = getVisibleLinks()
 
       switch (e.key) {
         case "j":
-          e.preventDefault();
-          focusCard(Math.min(focusedCardIndex + 1, links.length - 1));
-          break;
+          e.preventDefault()
+          focusCard(Math.min(focusedCardIndex + 1, links.length - 1))
+          break
         case "k":
-          e.preventDefault();
-          focusCard(Math.max(focusedCardIndex - 1, 0));
-          break;
+          e.preventDefault()
+          focusCard(Math.max(focusedCardIndex - 1, 0))
+          break
         case "Enter":
           if (focusedCardIndex >= 0 && focusedCardIndex < links.length) {
-            e.preventDefault();
-            const link = links[focusedCardIndex] as HTMLAnchorElement;
-            if (link.href) window.location.href = link.href;
+            e.preventDefault()
+            const link = links[focusedCardIndex] as HTMLAnchorElement
+            if (link.href) window.location.href = link.href
           }
-          break;
+          break
         case "Escape":
-          clearFocus();
-          break;
+          clearFocus()
+          break
         case "v":
-          e.preventDefault();
-          $("#view-toggle")?.click();
-          break;
+          e.preventDefault()
+          $("#view-toggle")?.click()
+          break
       }
-    });
+    })
   }
 
   // ── Popstate (back/forward navigation) ─────────────────
 
   function setupPopstate() {
     window.addEventListener("popstate", () => {
-      if (!$("#models-grid")) return;
+      if (!$("#models-grid")) return
 
-      readFiltersFromURL();
-      applyFilters();
+      readFiltersFromURL()
+      applyFilters()
 
-      const path = window.location.pathname;
-      const deviceMatch = path.match(/^\/device\/([^/]+)/);
+      const path = window.location.pathname
+      const deviceMatch = path.match(/^\/device\/([^/]+)/)
       if (deviceMatch) {
-        const key = slugToDeviceKey(deviceMatch[1]);
+        const key = slugToDeviceKey(deviceMatch[1])
         if (key && detectedHW) {
-          const deviceOverrides = getDeviceOverrides(key);
+          const deviceOverrides = getDeviceOverrides(key)
           if (deviceOverrides) {
-            saveHardwareOverrides(deviceOverrides);
-            currentHW = applyOverrides(detectedHW, deviceOverrides);
-            updateHardwarePanel(currentHW);
-            updateAllCards(currentHW);
+            saveHardwareOverrides(deviceOverrides)
+            currentHW = applyOverrides(detectedHW, deviceOverrides)
+            updateHardwarePanel(currentHW)
+            updateAllCards(currentHW)
           }
         }
       } else if (detectedHW) {
-        saveHardwareOverrides({});
-        currentHW = { ...detectedHW };
-        updateHardwarePanel(currentHW);
-        updateAllCards(currentHW);
+        saveHardwareOverrides({})
+        currentHW = { ...detectedHW }
+        updateHardwarePanel(currentHW)
+        updateAllCards(currentHW)
       }
-    });
+    })
   }
 
   // ── Boot ───────────────────────────────────────────────
 
-  document.addEventListener('astro:page-load', () => {
-    if (!$('#models-grid')) return;
+  document.addEventListener("astro:page-load", () => {
+    if (!$("#models-grid")) return
 
-    activeStatusFilter = "all";
-    activeUseFilter = "all";
-    activeProviderFilter = "all";
-    activeLicenseFilter = "all";
-    searchQuery = "";
-    currentSort = "score";
-    viewMode = (localStorage.getItem("viewMode") as ViewMode) || "list";
+    activeStatusFilter = "all"
+    activeUseFilter = "all"
+    activeProviderFilter = "all"
+    activeLicenseFilter = "all"
+    searchQuery = ""
+    currentSort = "score"
+    viewMode = (localStorage.getItem("viewMode") as ViewMode) || "list"
 
-    readFiltersFromURL();
+    readFiltersFromURL()
 
-    setupQuantButtons();
-    setupFilters();
-    setupSearch();
-    setupSort();
-    setupViewToggle();
-    setupKeyboardNav();
-    setupHardwareEditing();
-    setupLicenseLinks();
-    setupPopstate();
-    applyViewMode();
-    applyFilters();
-    init();
-  });
+    setupQuantButtons()
+    setupFilters()
+    setupSearch()
+    setupSort()
+    setupViewToggle()
+    setupKeyboardNav()
+    setupHardwareEditing()
+    setupLicenseLinks()
+    setupPopstate()
+    applyViewMode()
+    applyFilters()
+    init()
+  })
 </script>
 
 <style>
