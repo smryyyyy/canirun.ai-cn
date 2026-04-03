@@ -7,6 +7,13 @@ export interface LlamaRunOptions {
   temperature: number;
   maxTokens: number;
 }
+
+export interface LlamaStreamChunk {
+  text: string;
+  segmentType: "main" | "thought" | "comment";
+  segmentStart?: boolean;
+  segmentEnd?: boolean;
+}
 let cachedModelPath: string | null = null;
 let cachedModel: Awaited<ReturnType<Awaited<ReturnType<typeof getLlama>>["loadModel"]>> | null = null;
 const modelArchitectureCache = new Map<string, string>();
@@ -163,6 +170,53 @@ export async function runLlamaStream(
 
     if (!hasChunks && text) {
       onChunk(text);
+    }
+  } catch (error) {
+    await handleInferenceError(error);
+  } finally {
+    await disposeResource(context);
+  }
+}
+
+export async function runLlamaStreamWithSegments(
+  options: LlamaRunOptions,
+  onChunk: (chunk: LlamaStreamChunk) => void,
+): Promise<void> {
+  const model = await getModel(options.modelPath);
+  const context = await model.createContext();
+  try {
+    const session = new LlamaChatSession({
+      contextSequence: context.getSequence(),
+    });
+
+    let hasChunks = false;
+    const text = await session.prompt(options.prompt, {
+      temperature: options.temperature,
+      maxTokens: options.maxTokens,
+      onResponseChunk: (chunk) => {
+        hasChunks = true;
+        if (chunk.type === "segment") {
+          const segmentType = chunk.segmentType === "thought" ? "thought" : "comment";
+          onChunk({
+            text: chunk.text,
+            segmentType,
+            segmentStart: Boolean(chunk.segmentStartTime),
+            segmentEnd: Boolean(chunk.segmentEndTime),
+          });
+          return;
+        }
+        onChunk({
+          text: chunk.text,
+          segmentType: "main",
+        });
+      },
+    } as never);
+
+    if (!hasChunks && text) {
+      onChunk({
+        text,
+        segmentType: "main",
+      });
     }
   } catch (error) {
     await handleInferenceError(error);

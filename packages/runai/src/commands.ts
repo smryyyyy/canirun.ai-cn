@@ -8,7 +8,7 @@ import { RUNAI_DEFAULT_PORT, RUNAI_MODEL_DIR, RUNAI_VERSION } from "./config";
 import { detectMacHardware } from "./hardware-macos";
 import { printBrowseResults, printHardware, printRecommendations } from "./output";
 import { installCatalogModel } from "./install";
-import { runLlamaStream } from "./llamacpp";
+import { runLlamaStream, runLlamaStreamWithSegments } from "./llamacpp";
 import { ensureModelDir, listInstalledModelPaths } from "./model-store";
 import { buildPrompt } from "./openai";
 import { pullModel } from "./pull";
@@ -41,6 +41,19 @@ const ANSI = {
 function paint(text: string, color: string, muted = false): string {
   if (!process.stdout.isTTY) return text;
   return `${muted ? ANSI.dim : ""}${color}${text}${ANSI.reset}`;
+}
+
+function waveGradient(text: string, phase: number): string {
+  if (!process.stdout.isTTY) return text;
+  const chars = [...text];
+  return chars.map((ch, index) => {
+    const t = (index + phase) * 0.55;
+    const mix = (Math.sin(t) + 1) / 2;
+    const r = Math.round(245 + (255 - 245) * mix);
+    const g = Math.round(165 + (235 - 165) * mix);
+    const b = Math.round(40 + (120 - 40) * mix);
+    return `\u001b[38;2;${r};${g};${b}m${ch}`;
+  }).join("") + ANSI.reset;
 }
 
 function gradientBrand(text: string): string {
@@ -223,6 +236,67 @@ interface MarkdownRenderState {
   inCodeBlock: boolean;
   codeLang: string;
   lineBuffer: string;
+}
+
+interface ThinkingDelimiters {
+  open: RegExp;
+  close: RegExp;
+}
+
+interface ParsedThinkingBlock {
+  hasThinking: boolean;
+  thinkingText: string;
+  answerText: string;
+  isOpen: boolean;
+}
+
+const THINKING_DELIMITERS: ThinkingDelimiters[] = [
+  { open: /<\s*think(?:ing)?\s*>/i, close: /<\s*\/\s*think(?:ing)?\s*>/i },
+  { open: /<\|begin_of_thought\|>/i, close: /<\|end_of_thought\|>/i },
+  { open: /<\|start_of_thought\|>/i, close: /<\|end_of_thought\|>/i },
+];
+
+function parseThinkingBlock(text: string): ParsedThinkingBlock {
+  let found: { start: number; end: number; delimiters: ThinkingDelimiters } | null = null;
+
+  for (const delimiters of THINKING_DELIMITERS) {
+    const startMatch = delimiters.open.exec(text);
+    if (!startMatch || startMatch.index === undefined) continue;
+    const start = startMatch.index;
+    const end = start + startMatch[0].length;
+    if (!found || start < found.start) {
+      found = { start, end, delimiters };
+    }
+  }
+
+  if (!found) {
+    return {
+      hasThinking: false,
+      thinkingText: "",
+      answerText: text,
+      isOpen: false,
+    };
+  }
+
+  const afterOpen = text.slice(found.end);
+  const closeMatch = found.delimiters.close.exec(afterOpen);
+  if (!closeMatch || closeMatch.index === undefined) {
+    return {
+      hasThinking: true,
+      thinkingText: afterOpen,
+      answerText: "",
+      isOpen: true,
+    };
+  }
+
+  const thinkingText = afterOpen.slice(0, closeMatch.index);
+  const answerText = afterOpen.slice(closeMatch.index + closeMatch[0].length);
+  return {
+    hasThinking: true,
+    thinkingText,
+    answerText,
+    isOpen: false,
+  };
 }
 
 const TS_JS_KEYWORDS = new Set([
@@ -719,6 +793,7 @@ export async function handleChat(
     history.push({ role: "user", content: prompt });
     const recent = history.slice(-16);
     let cleanupInput: (() => void) | null = null;
+    let thinkingAnimationTimer: ReturnType<typeof setInterval> | null = null;
     try {
       const startedAt = Date.now();
       let fullText = "";
@@ -731,10 +806,10 @@ export async function handleChat(
       let thinkEndedAt: number | null = null;
       let responseHeaderShown = false;
       let keyListenerAttached = false;
+      let statusMode: "thinking" | "replied" = "thinking";
+      let thinkingGradientPhase = 0;
       const stdin = process.stdin as NodeJS.ReadStream & { setRawMode?: (mode: boolean) => void; isRaw?: boolean };
       const wasRawMode = Boolean(stdin.isRaw);
-
-      p.log.step(paint("Thinking...", ANSI.yellow));
 
       const clearThinking = (): void => {
         if (!process.stdout.isTTY || shownThinkingLines === 0) return;
@@ -752,11 +827,27 @@ export async function handleChat(
           .map((line) => line.trimEnd())
           .slice(-8);
         clearThinking();
-        process.stdout.write(`${paint("thinking", ANSI.gray, true)}\n`);
+        const title = statusMode === "thinking"
+          ? waveGradient("Thinking", thinkingGradientPhase)
+          : paint("Assistant replied", ANSI.green);
+        process.stdout.write(`${title}\n`);
         for (const line of lines) {
           process.stdout.write(`${paint(line || " ", ANSI.gray, true)}\n`);
         }
         shownThinkingLines = lines.length + 1;
+      };
+
+      const stopThinkingAnimation = (): void => {
+        if (!thinkingAnimationTimer) return;
+        clearInterval(thinkingAnimationTimer);
+        thinkingAnimationTimer = null;
+      };
+
+      const setRepliedStatus = (): void => {
+        if (statusMode === "replied") return;
+        statusMode = "replied";
+        stopThinkingAnimation();
+        if (showThinking) renderThinking(latestThinkingText);
       };
 
       const onKeypress = (buffer: Buffer): void => {
@@ -770,6 +861,8 @@ export async function handleChat(
           }
           if (latestThinkingText) {
             renderThinking(latestThinkingText);
+          } else if (statusMode === "thinking" || statusMode === "replied") {
+            renderThinking("");
           }
         }
       };
@@ -787,7 +880,19 @@ export async function handleChat(
         };
       }
 
-      await runLlamaStream(
+      if (process.stdout.isTTY) {
+        if (showThinking) renderThinking("");
+        thinkingAnimationTimer = setInterval(() => {
+          if (!showThinking || statusMode !== "thinking") return;
+          thinkingGradientPhase += 1;
+          renderThinking(latestThinkingText);
+        }, 90);
+      } else {
+        p.log.step("Thinking...");
+      }
+
+      let thoughtSegmentOpen = false;
+      await runLlamaStreamWithSegments(
         {
           modelPath,
           prompt: buildPrompt(recent),
@@ -795,39 +900,55 @@ export async function handleChat(
           maxTokens: 512,
         },
         (chunk) => {
-          fullText += chunk;
+          if (chunk.segmentType === "thought" || chunk.segmentType === "comment") {
+            if (chunk.segmentStart && !thoughtSegmentOpen) {
+              fullText += "<think>";
+              thoughtSegmentOpen = true;
+            }
+            if (!thoughtSegmentOpen) {
+              fullText += "<think>";
+              thoughtSegmentOpen = true;
+            }
+            fullText += chunk.text;
+            if (chunk.segmentEnd && thoughtSegmentOpen) {
+              fullText += "</think>";
+              thoughtSegmentOpen = false;
+            }
+          } else {
+            fullText += chunk.text;
+          }
 
-          const thinkStart = fullText.indexOf("<think>");
-          const thinkEnd = thinkStart >= 0 ? fullText.indexOf("</think>", thinkStart + "<think>".length) : -1;
-          let visibleAnswer = fullText;
+          const parsed = parseThinkingBlock(fullText);
+          let visibleAnswer = parsed.answerText;
 
-          if (thinkStart >= 0) {
+          if (parsed.hasThinking) {
             hasThinkBlock = true;
             if (!thinkStartedAt) thinkStartedAt = Date.now();
+            latestThinkingText = parsed.thinkingText;
 
-            if (thinkEnd === -1) {
-              latestThinkingText = fullText.slice(thinkStart + "<think>".length);
+            if (parsed.isOpen) {
               if (showThinking) {
                 renderThinking(latestThinkingText);
               } else {
                 clearThinking();
               }
               visibleAnswer = "";
-            } else {
-              if (!thinkEndedAt) thinkEndedAt = Date.now();
-              latestThinkingText = fullText.slice(thinkStart + "<think>".length, thinkEnd);
-              if (showThinking && latestThinkingText.trim()) {
-                renderThinking(latestThinkingText);
-              } else if (!showThinking) {
-                clearThinking();
-              }
-              visibleAnswer = fullText.slice(thinkEnd + "</think>".length);
+            } else if (showThinking && latestThinkingText.trim()) {
+              renderThinking(latestThinkingText);
+            } else if (!showThinking) {
+              clearThinking();
+            }
+
+            if (!parsed.isOpen && !thinkEndedAt) {
+              thinkEndedAt = Date.now();
             }
           } else {
             latestThinkingText = "";
+            visibleAnswer = fullText;
           }
 
           if (!visibleAnswer) return;
+          setRepliedStatus();
           const delta = visibleAnswer.slice(displayedAnswer.length);
           if (!delta) return;
           if (!responseHeaderShown) {
@@ -839,10 +960,15 @@ export async function handleChat(
         },
       );
 
+      if (thoughtSegmentOpen) {
+        fullText += "</think>";
+      }
+
       if (responseHeaderShown) {
         const tail = flushMarkdownDelta(markdownRenderState);
         if (tail) process.stdout.write(tail);
       }
+      setRepliedStatus();
 
       if (!showThinking) {
         clearThinking();
@@ -853,11 +979,8 @@ export async function handleChat(
       if (responseHeaderShown) process.stdout.write("\n");
       renderChatFooter();
 
-      const thinkStart = fullText.indexOf("<think>");
-      const thinkEnd = thinkStart >= 0 ? fullText.indexOf("</think>", thinkStart + "<think>".length) : -1;
-      const answer = thinkStart >= 0 && thinkEnd >= 0
-        ? fullText.slice(thinkEnd + "</think>".length).trim()
-        : fullText.trim();
+      const parsed = parseThinkingBlock(fullText);
+      const answer = parsed.hasThinking ? parsed.answerText.trim() : fullText.trim();
 
       if (!responseHeaderShown) {
         p.log.message(answer, { symbol: "🤖" });
@@ -879,6 +1002,9 @@ export async function handleChat(
     } catch (error) {
       p.log.error(error instanceof Error ? error.message : "Inference failed");
     } finally {
+      if (thinkingAnimationTimer) {
+        clearInterval(thinkingAnimationTimer);
+      }
       cleanupInput?.();
     }
   }
