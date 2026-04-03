@@ -1,5 +1,4 @@
 #!/usr/bin/env bun
-import { handleBrowse, handleChat, handleDoctor, handleHome, handlePull, handleRecommend, handleServe } from "./commands";
 
 function setupHardExitOnCtrlC(): void {
   let exiting = false;
@@ -22,23 +21,40 @@ function setupHardExitOnCtrlC(): void {
 
 function printHelp(): void {
   console.log(`
-runai - local AI runtime for macOS (Bun + llama.cpp)
+runai - local AI runtime (Bun + llama.cpp)
 
 Usage:
-  runai
-  runai recommend [--top 3] [--install [1,2|all|model-id]] [--json]
-  runai browse [query] [--limit 25] [--json]
-  runai pull <gguf-url> [--name model.gguf]
-  runai chat [--model <path-or-id>]
-  runai doctor [--json] [--model <path-or-file>]
-  runai serve [--model <path-or-id>] [--port 11435]
-  runai api [--model <path-or-id>] [--port 11435]
-  runai --help
+  runai                                  Interactive home menu
+  runai run <model>                      Download (if needed) + chat in one command
+  runai chat [--model <path-or-id>]      Open interactive chat
+  runai recommend [--top N] [--json]     Hardware-aware model recommendations
+  runai browse [query] [--limit N]       Search model catalog
+  runai pull <gguf-url> [--name ...]     Download GGUF from URL
+  runai list [--json]                    List installed models
+  runai show [model] [--json]            Show model metadata & info
+  runai bench [--model <path-or-id>]     Benchmark a model (tok/s, TTFT)
+  runai serve [--model ...] [--port ..]  Start OpenAI-compatible API server
+  runai serve --detach                   Start API as background daemon
+  runai stop                             Stop background daemon
+  runai import [--json]                  Import models from Ollama
+  runai doctor [--json] [--model ...]    Diagnose setup issues
+  runai --help | --version
 
-Notes:
-  - Recommendations are based on canirun.ai scoring logic.
-  - API compatibility: /v1/models, /v1/chat/completions, /v1/completions.
-  - Anonymous telemetry can be disabled with RUNAI_TELEMETRY_DISABLED=1.
+API endpoints:
+  POST /v1/chat/completions     Chat completions (OpenAI-compatible)
+  POST /v1/completions          Text completions
+  POST /v1/embeddings           Generate embeddings
+  GET  /v1/models               List available models
+
+Environment:
+  RUNAI_MODEL_DIR         Model storage directory (~/.runai/models)
+  RUNAI_PORT              API server port (11435)
+  RUNAI_MODEL             Default model for API
+  RUNAI_KEEP_ALIVE        Idle model unload time in seconds (300)
+  RUNAI_MAX_QUEUE         Max queued requests (64)
+  RUNAI_MAX_TOKENS        Default max tokens (2048)
+  RUNAI_TELEMETRY_DISABLED=1  Disable anonymous telemetry
+  OLLAMA_MODELS           Ollama model dir for import (~/.ollama/models)
 `);
 }
 
@@ -46,6 +62,7 @@ async function main(): Promise<void> {
   const [, , cmd, ...args] = process.argv;
 
   if (!cmd) {
+    const { handleHome } = await import("./commands/home");
     await handleHome();
     return;
   }
@@ -55,31 +72,73 @@ async function main(): Promise<void> {
     return;
   }
   if (cmd === "--version" || cmd === "-v") {
-    console.log("runai 0.1.0");
+    const { RUNAI_VERSION } = await import("./config");
+    console.log(`runai ${RUNAI_VERSION}`);
     return;
   }
 
+  if (cmd === "run") {
+    const { handleRun } = await import("./commands/run");
+    await handleRun(args);
+    return;
+  }
   if (cmd === "recommend") {
+    const { handleRecommend } = await import("./commands/recommend-install");
     await handleRecommend(args);
     return;
   }
   if (cmd === "browse") {
+    const { handleBrowse } = await import("./commands/simple");
     await handleBrowse(args);
     return;
   }
   if (cmd === "pull") {
+    const { handlePull } = await import("./commands/simple");
     await handlePull(args);
     return;
   }
   if (cmd === "serve" || cmd === "api") {
+    if (args.includes("--detach") || args.includes("-d")) {
+      const { handleDaemon } = await import("./commands/daemon");
+      await handleDaemon(args.filter((a) => a !== "--detach" && a !== "-d"));
+      return;
+    }
+    const { handleServe } = await import("./commands/simple");
     await handleServe(args);
     return;
   }
   if (cmd === "chat") {
+    const { handleChat } = await import("./commands/chat");
     await handleChat(args);
     return;
   }
+  if (cmd === "list" || cmd === "ls") {
+    const { handleList } = await import("./commands/simple");
+    await handleList(args);
+    return;
+  }
+  if (cmd === "show" || cmd === "info") {
+    const { handleShow } = await import("./commands/show");
+    await handleShow(args);
+    return;
+  }
+  if (cmd === "bench" || cmd === "benchmark") {
+    const { handleBench } = await import("./commands/bench");
+    await handleBench(args);
+    return;
+  }
+  if (cmd === "import") {
+    const { handleImport } = await import("./commands/import-ollama");
+    await handleImport(args);
+    return;
+  }
+  if (cmd === "stop") {
+    const { handleStop } = await import("./commands/daemon");
+    await handleStop();
+    return;
+  }
   if (cmd === "doctor") {
+    const { handleDoctor } = await import("./commands/doctor");
     await handleDoctor(args);
     return;
   }

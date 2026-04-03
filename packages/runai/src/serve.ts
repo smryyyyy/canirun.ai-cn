@@ -1,17 +1,20 @@
 import { basename } from "node:path";
-import { RUNAI_DEFAULT_MODEL, RUNAI_DEFAULT_PORT } from "./config";
+import { RUNAI_DEFAULT_MAX_TOKENS, RUNAI_DEFAULT_MODEL, RUNAI_DEFAULT_PORT, RUNAI_MAX_QUEUE } from "./config";
 import { modelPathFromId } from "./model-store";
 import { isModelFilePresent, listInstalledModels } from "./db";
-import { runLlamaOnce, runLlamaStream } from "./llamacpp";
+import { runLlamaOnce, runLlamaStream, runLlamaChatOnce, runLlamaChatStream, generateEmbedding, unloadModel } from "./llamacpp";
+import { closeDb } from "./db";
 import {
-  buildPrompt,
   createChatResponse,
   createCompletionResponse,
   createCompletionSSEChunk,
   createSSEChunk,
+  createEmbeddingResponse,
+  extractInferenceParams,
   normalizeCompletionPrompt,
   type ChatCompletionRequest,
   type CompletionRequest,
+  type EmbeddingRequest,
 } from "./openai";
 import { sendInferenceTelemetry } from "./telemetry";
 
@@ -63,7 +66,7 @@ async function resolveApiModel(requestedModel: string | undefined, fallbackPath:
   }
 
   const normalized = token.toLowerCase();
-  const installed = await listInstalledModels();
+  const installed = listInstalledModels();
   const availableInstalled = installed.filter((item) => isModelFilePresent(item.path));
   if (normalized === "auto") {
     const first = availableInstalled[0];
@@ -117,6 +120,8 @@ const CORS_HEADERS = {
   "access-control-allow-methods": "GET,POST,OPTIONS",
 };
 
+const sharedEncoder = new TextEncoder();
+
 function sse(stream: ReadableStream<Uint8Array>): Response {
   return new Response(stream, {
     headers: {
@@ -132,12 +137,33 @@ function optionsResponse(): Response {
   return new Response(null, { status: 204, headers: CORS_HEADERS });
 }
 
+let activeRequests = 0;
+let queuedRequests = 0;
+
+function canAcceptRequest(): boolean {
+  return queuedRequests < RUNAI_MAX_QUEUE;
+}
+
+async function withQueue<T>(fn: () => Promise<T>): Promise<T> {
+  if (!canAcceptRequest()) {
+    throw new Error("Server is overloaded. Try again later.");
+  }
+  queuedRequests += 1;
+  try {
+    activeRequests += 1;
+    return await fn();
+  } finally {
+    activeRequests -= 1;
+    queuedRequests -= 1;
+  }
+}
+
 export function startServer(options: ServeOptions): void {
   const modelPath = resolveModelPath(options.model);
   const modelLabel = stripGguf(basename(modelPath));
   const port = options.port || RUNAI_DEFAULT_PORT;
 
-  Bun.serve({
+  const server = Bun.serve({
     port,
     routes: {
       "/v1/chat/completions": {
@@ -152,9 +178,8 @@ export function startServer(options: ServeOptions): void {
           if (!body.messages?.length) {
             return json({ error: { message: "messages is required", type: "invalid_request_error" } }, 400);
           }
-          const prompt = buildPrompt(body.messages);
-          const temperature = typeof body.temperature === "number" ? body.temperature : 0.7;
-          const maxTokens = typeof body.max_tokens === "number" ? body.max_tokens : 512;
+
+          const params = extractInferenceParams(body);
           let activeModel: ResolvedApiModel;
           try {
             activeModel = await resolveApiModel(body.model, modelPath);
@@ -168,22 +193,21 @@ export function startServer(options: ServeOptions): void {
           if (!body.stream) {
             const startedAt = performance.now();
             try {
-              const output = await runLlamaOnce({
+              const result = await withQueue(() => runLlamaChatOnce({
                 modelPath: activeModel.path,
-                prompt,
-                temperature,
-                maxTokens,
-              });
+                messages: body.messages,
+                params,
+              }));
               sendInferenceTelemetry({
                 model: activeModel.id,
                 stream: false,
                 success: true,
                 latencyMs: performance.now() - startedAt,
-                outputText: output,
-                temperature,
-                maxTokens,
+                outputText: result.text,
+                temperature: params.temperature,
+                maxTokens: params.maxTokens,
               });
-              return json(createChatResponse(activeModel.id, output));
+              return json(createChatResponse(activeModel.id, result.text, result.promptTokens, result.completionTokens));
             } catch (error) {
               sendInferenceTelemetry({
                 model: activeModel.id,
@@ -191,41 +215,40 @@ export function startServer(options: ServeOptions): void {
                 success: false,
                 latencyMs: performance.now() - startedAt,
                 outputText: "",
-                temperature,
-                maxTokens,
+                temperature: params.temperature,
+                maxTokens: params.maxTokens,
               });
-              return json(
-                { error: { message: error instanceof Error ? error.message : "Inference failed", type: "server_error" } },
-                500,
-              );
+              const message = error instanceof Error ? error.message : "Inference failed";
+              const status = message.includes("overloaded") ? 429 : 500;
+              return json({ error: { message, type: "server_error" } }, status);
             }
           }
 
           const stream = new ReadableStream({
             start: async (controller) => {
               const startedAt = performance.now();
-              let aggregated = "";
-              const encoder = new TextEncoder();
+              const chunks: string[] = [];
               try {
-                await runLlamaStream(
-                  { modelPath: activeModel.path, prompt, temperature, maxTokens },
+                await withQueue(() => runLlamaChatStream(
+                  { modelPath: activeModel.path, messages: body.messages, params },
                   (chunk) => {
-                    aggregated += chunk;
+                    chunks.push(chunk);
                     const payload = createSSEChunk(activeModel.id, chunk);
-                    controller.enqueue(encoder.encode(`data: ${JSON.stringify(payload)}\n\n`));
+                    controller.enqueue(sharedEncoder.encode(`data: ${JSON.stringify(payload)}\n\n`));
                   },
-                );
+                ));
+                const aggregated = chunks.join("");
                 sendInferenceTelemetry({
                   model: activeModel.id,
                   stream: true,
                   success: true,
                   latencyMs: performance.now() - startedAt,
                   outputText: aggregated,
-                  temperature,
-                  maxTokens,
+                  temperature: params.temperature,
+                  maxTokens: params.maxTokens,
                 });
-                controller.enqueue(encoder.encode(`data: ${JSON.stringify(createSSEChunk(activeModel.id, "", true))}\n\n`));
-                controller.enqueue(encoder.encode("data: [DONE]\n\n"));
+                controller.enqueue(sharedEncoder.encode(`data: ${JSON.stringify(createSSEChunk(activeModel.id, "", true))}\n\n`));
+                controller.enqueue(sharedEncoder.encode("data: [DONE]\n\n"));
                 controller.close();
               } catch (error) {
                 sendInferenceTelemetry({
@@ -233,9 +256,9 @@ export function startServer(options: ServeOptions): void {
                   stream: true,
                   success: false,
                   latencyMs: performance.now() - startedAt,
-                  outputText: aggregated,
-                  temperature,
-                  maxTokens,
+                  outputText: chunks.join(""),
+                  temperature: params.temperature,
+                  maxTokens: params.maxTokens,
                 });
                 const payload = {
                   error: {
@@ -243,7 +266,7 @@ export function startServer(options: ServeOptions): void {
                     type: "server_error",
                   },
                 };
-                controller.enqueue(encoder.encode(`data: ${JSON.stringify(payload)}\n\n`));
+                controller.enqueue(sharedEncoder.encode(`data: ${JSON.stringify(payload)}\n\n`));
                 controller.close();
               }
             },
@@ -267,8 +290,7 @@ export function startServer(options: ServeOptions): void {
             return json({ error: { message: "prompt is required", type: "invalid_request_error" } }, 400);
           }
 
-          const temperature = typeof body.temperature === "number" ? body.temperature : 0.7;
-          const maxTokens = typeof body.max_tokens === "number" ? body.max_tokens : 512;
+          const params = extractInferenceParams(body);
           let activeModel: ResolvedApiModel;
           try {
             activeModel = await resolveApiModel(body.model, modelPath);
@@ -282,22 +304,27 @@ export function startServer(options: ServeOptions): void {
           if (!body.stream) {
             const startedAt = performance.now();
             try {
-              const output = await runLlamaOnce({
+              const result = await withQueue(() => runLlamaOnce({
                 modelPath: activeModel.path,
                 prompt,
-                temperature,
-                maxTokens,
-              });
+                temperature: params.temperature,
+                maxTokens: params.maxTokens,
+                topP: params.topP,
+                topK: params.topK,
+                seed: params.seed,
+                stop: params.stop,
+                repeatPenalty: params.repeatPenalty,
+              }));
               sendInferenceTelemetry({
                 model: activeModel.id,
                 stream: false,
                 success: true,
                 latencyMs: performance.now() - startedAt,
-                outputText: output,
-                temperature,
-                maxTokens,
+                outputText: result.text,
+                temperature: params.temperature,
+                maxTokens: params.maxTokens,
               });
-              return json(createCompletionResponse(activeModel.id, output));
+              return json(createCompletionResponse(activeModel.id, result.text, result.promptTokens, result.completionTokens));
             } catch (error) {
               sendInferenceTelemetry({
                 model: activeModel.id,
@@ -305,43 +332,52 @@ export function startServer(options: ServeOptions): void {
                 success: false,
                 latencyMs: performance.now() - startedAt,
                 outputText: "",
-                temperature,
-                maxTokens,
+                temperature: params.temperature,
+                maxTokens: params.maxTokens,
               });
-              return json(
-                { error: { message: error instanceof Error ? error.message : "Inference failed", type: "server_error" } },
-                500,
-              );
+              const message = error instanceof Error ? error.message : "Inference failed";
+              const status = message.includes("overloaded") ? 429 : 500;
+              return json({ error: { message, type: "server_error" } }, status);
             }
           }
 
           const stream = new ReadableStream({
             start: async (controller) => {
               const startedAt = performance.now();
-              let aggregated = "";
-              const encoder = new TextEncoder();
+              const chunks: string[] = [];
               try {
-                await runLlamaStream(
-                  { modelPath: activeModel.path, prompt, temperature, maxTokens },
-                  (chunk) => {
-                    aggregated += chunk;
-                    const payload = createCompletionSSEChunk(activeModel.id, chunk);
-                    controller.enqueue(encoder.encode(`data: ${JSON.stringify(payload)}\n\n`));
+                await withQueue(() => runLlamaStream(
+                  {
+                    modelPath: activeModel.path,
+                    prompt,
+                    temperature: params.temperature,
+                    maxTokens: params.maxTokens,
+                    topP: params.topP,
+                    topK: params.topK,
+                    seed: params.seed,
+                    stop: params.stop,
+                    repeatPenalty: params.repeatPenalty,
                   },
-                );
+                  (chunk) => {
+                    chunks.push(chunk);
+                    const payload = createCompletionSSEChunk(activeModel.id, chunk);
+                    controller.enqueue(sharedEncoder.encode(`data: ${JSON.stringify(payload)}\n\n`));
+                  },
+                ));
+                const aggregated = chunks.join("");
                 sendInferenceTelemetry({
                   model: activeModel.id,
                   stream: true,
                   success: true,
                   latencyMs: performance.now() - startedAt,
                   outputText: aggregated,
-                  temperature,
-                  maxTokens,
+                  temperature: params.temperature,
+                  maxTokens: params.maxTokens,
                 });
                 controller.enqueue(
-                  encoder.encode(`data: ${JSON.stringify(createCompletionSSEChunk(activeModel.id, "", true))}\n\n`),
+                  sharedEncoder.encode(`data: ${JSON.stringify(createCompletionSSEChunk(activeModel.id, "", true))}\n\n`),
                 );
-                controller.enqueue(encoder.encode("data: [DONE]\n\n"));
+                controller.enqueue(sharedEncoder.encode("data: [DONE]\n\n"));
                 controller.close();
               } catch (error) {
                 sendInferenceTelemetry({
@@ -349,9 +385,9 @@ export function startServer(options: ServeOptions): void {
                   stream: true,
                   success: false,
                   latencyMs: performance.now() - startedAt,
-                  outputText: aggregated,
-                  temperature,
-                  maxTokens,
+                  outputText: chunks.join(""),
+                  temperature: params.temperature,
+                  maxTokens: params.maxTokens,
                 });
                 const payload = {
                   error: {
@@ -359,7 +395,7 @@ export function startServer(options: ServeOptions): void {
                     type: "server_error",
                   },
                 };
-                controller.enqueue(encoder.encode(`data: ${JSON.stringify(payload)}\n\n`));
+                controller.enqueue(sharedEncoder.encode(`data: ${JSON.stringify(payload)}\n\n`));
                 controller.close();
               }
             },
@@ -369,10 +405,54 @@ export function startServer(options: ServeOptions): void {
         },
         OPTIONS: optionsResponse,
       },
+      "/v1/embeddings": {
+        POST: async (req) => {
+          let body: EmbeddingRequest;
+          try {
+            body = await req.json() as EmbeddingRequest;
+          } catch {
+            return json({ error: { message: "Invalid JSON body", type: "invalid_request_error" } }, 400);
+          }
+
+          const inputs = typeof body.input === "string" ? [body.input] : body.input;
+          if (!inputs || inputs.length === 0) {
+            return json({ error: { message: "input is required", type: "invalid_request_error" } }, 400);
+          }
+
+          let activeModel: ResolvedApiModel;
+          try {
+            activeModel = await resolveApiModel(body.model, modelPath);
+          } catch (error) {
+            return json(
+              { error: { message: error instanceof Error ? error.message : "Invalid model", type: "invalid_request_error" } },
+              400,
+            );
+          }
+
+          try {
+            const results: Array<{ embedding: number[]; index: number }> = [];
+            let totalTokens = 0;
+            for (let i = 0; i < inputs.length; i++) {
+              const inputText = inputs[i]!;
+              const { embedding, tokenCount } = await withQueue(() => generateEmbedding(activeModel.path, inputText));
+              results.push({ embedding, index: i });
+              totalTokens += tokenCount;
+            }
+            return json(createEmbeddingResponse(activeModel.id, results, totalTokens));
+          } catch (error) {
+            const message = error instanceof Error ? error.message : "Embedding failed";
+            if (message.includes("overloaded")) {
+              return json({ error: { message, type: "server_error" } }, 429);
+            }
+            return json({ error: { message, type: "server_error" } }, 500);
+          }
+        },
+        OPTIONS: optionsResponse,
+      },
       "/v1/models": {
         GET: async () => {
           const now = Math.floor(Date.now() / 1000);
-          const installed = await listInstalledModels();
+          const installed = listInstalledModels();
           const available = installed.filter((item) => isModelFilePresent(item.path));
           const data = available.map((item) => ({
             id: item.id,
@@ -404,7 +484,7 @@ export function startServer(options: ServeOptions): void {
         OPTIONS: optionsResponse,
       },
       "/health": {
-        GET: () => json({ ok: true, model: modelLabel }),
+        GET: () => json({ ok: true, model: modelLabel, active_requests: activeRequests, queued_requests: queuedRequests }),
         OPTIONS: optionsResponse,
       },
     },
@@ -413,7 +493,22 @@ export function startServer(options: ServeOptions): void {
     },
   });
 
+  const gracefulShutdown = async (signal: string) => {
+    console.log(`\n${signal} received. Shutting down gracefully...`);
+    server.stop();
+    await unloadModel();
+    closeDb();
+    process.exit(0);
+  };
+
+  process.on("SIGTERM", () => gracefulShutdown("SIGTERM"));
+  process.on("SIGINT", () => gracefulShutdown("SIGINT"));
+
   console.log(`runai API listening at http://localhost:${port}`);
-  console.log(`OpenAI-compatible endpoint: http://localhost:${port}/v1/chat/completions`);
+  console.log(`OpenAI-compatible endpoints:`);
+  console.log(`  POST http://localhost:${port}/v1/chat/completions`);
+  console.log(`  POST http://localhost:${port}/v1/completions`);
+  console.log(`  POST http://localhost:${port}/v1/embeddings`);
+  console.log(`  GET  http://localhost:${port}/v1/models`);
   console.log(`Model: ${modelPath}`);
 }

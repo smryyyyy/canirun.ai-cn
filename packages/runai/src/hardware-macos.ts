@@ -1,10 +1,15 @@
 import { CHIP_BW_GBS } from "./config";
 import type { CliHardwareInfo } from "./types";
 
-function run(command: string, args: string[]): string {
-  const result = Bun.spawnSync([command, ...args], { stdout: "pipe", stderr: "pipe" });
-  if (result.exitCode !== 0) return "";
-  return new TextDecoder().decode(result.stdout).trim();
+async function runAsync(command: string, args: string[]): Promise<string> {
+  try {
+    const proc = Bun.spawn([command, ...args], { stdout: "pipe", stderr: "pipe" });
+    const output = await new Response(proc.stdout).text();
+    await proc.exited;
+    return output.trim();
+  } catch {
+    return "";
+  }
 }
 
 function parseAppleChip(value: string): string | null {
@@ -18,15 +23,17 @@ function parseAppleChip(value: string): string | null {
 
 function parseGpuCores(systemProfile: string): number | null {
   const match = systemProfile.match(/Total Number of Cores:\s*(\d+)/i);
-  if (!match) return null;
+  if (!match?.[1]) return null;
   return Number.parseInt(match[1], 10);
 }
 
 export async function detectMacHardware(): Promise<CliHardwareInfo> {
-  const memBytes = run("sysctl", ["-n", "hw.memsize"]);
-  const cpuBrand = run("sysctl", ["-n", "machdep.cpu.brand_string"]);
-  const cpuCoresRaw = run("sysctl", ["-n", "hw.perflevel0.physicalcpu"]);
-  const gpuProfile = run("system_profiler", ["SPDisplaysDataType"]);
+  const [memBytes, cpuBrand, cpuCoresRaw, gpuProfile] = await Promise.all([
+    runAsync("sysctl", ["-n", "hw.memsize"]),
+    runAsync("sysctl", ["-n", "machdep.cpu.brand_string"]),
+    runAsync("sysctl", ["-n", "hw.perflevel0.physicalcpu"]),
+    runAsync("system_profiler", ["SPDisplaysDataType"]),
+  ]);
 
   const chip = parseAppleChip(cpuBrand) || "m1";
   const totalRamGB = Math.round((Number(memBytes || "0") / (1024 ** 3)) * 10) / 10 || null;

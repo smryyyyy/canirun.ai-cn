@@ -36,3 +36,36 @@ export interface RecommendedModel {
   paramsBillions: number;
   downloaded: boolean;
 }
+
+export interface ChatMessage {
+  role: "system" | "user" | "assistant";
+  content: string;
+}
+
+export interface InferenceParams {
+  temperature?: number;
+  maxTokens?: number;
+  topP?: number;
+  topK?: number;
+  seed?: number;
+  stop?: string[];
+  repeatPenalty?: number;
+  frequencyPenalty?: number;
+  presencePenalty?: number;
+}
+
+export interface InferenceResult {
+  text: string;
+  promptTokens: number;
+  completionTokens: number;
+  totalTokens: number;
+}
+
+export interface ModelMetadata {
+  architecture: string | null;
+  contextLength: number | null;
+  paramCount: number | null;
+  quantization: string | null;
+  fileSizeBytes: number;
+  fileFormat: string;
+}

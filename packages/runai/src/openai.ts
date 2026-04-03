@@ -1,7 +1,6 @@
-export interface ChatMessage {
-  role: "system" | "user" | "assistant";
-  content: string;
-}
+import type { ChatMessage } from "./types";
+
+export type { ChatMessage };
 
 export interface ChatCompletionRequest {
   model?: string;
@@ -9,6 +8,13 @@ export interface ChatCompletionRequest {
   stream?: boolean;
   temperature?: number;
   max_tokens?: number;
+  top_p?: number;
+  top_k?: number;
+  seed?: number;
+  stop?: string | string[];
+  frequency_penalty?: number;
+  presence_penalty?: number;
+  repeat_penalty?: number;
 }
 
 export interface CompletionRequest {
@@ -17,15 +23,47 @@ export interface CompletionRequest {
   stream?: boolean;
   temperature?: number;
   max_tokens?: number;
+  top_p?: number;
+  top_k?: number;
+  seed?: number;
+  stop?: string | string[];
+  frequency_penalty?: number;
+  presence_penalty?: number;
+  repeat_penalty?: number;
+}
+
+export interface EmbeddingRequest {
+  model?: string;
+  input: string | string[];
+  encoding_format?: "float" | "base64";
 }
 
 export function buildPrompt(messages: ChatMessage[]): string {
   return messages.map((m) => `${m.role.toUpperCase()}: ${m.content}`).join("\n") + "\nASSISTANT:";
 }
 
-export function createChatResponse(model: string, content: string) {
+function normalizeStop(stop: string | string[] | undefined): string[] {
+  if (!stop) return [];
+  if (typeof stop === "string") return [stop];
+  return stop;
+}
+
+export function extractInferenceParams(body: ChatCompletionRequest | CompletionRequest) {
+  return {
+    temperature: typeof body.temperature === "number" ? body.temperature : 0.7,
+    maxTokens: typeof body.max_tokens === "number" ? body.max_tokens : 2048,
+    topP: body.top_p,
+    topK: body.top_k,
+    seed: body.seed,
+    stop: normalizeStop(body.stop),
+    repeatPenalty: body.repeat_penalty,
+    frequencyPenalty: body.frequency_penalty,
+    presencePenalty: body.presence_penalty,
+  };
+}
+
+export function createChatResponse(model: string, content: string, promptTokens = 0, completionTokens = 0) {
   const now = Math.floor(Date.now() / 1000);
-  const words = content.trim() ? content.trim().split(/\s+/).length : 0;
   return {
     id: `chatcmpl_${crypto.randomUUID().replaceAll("-", "")}`,
     object: "chat.completion",
@@ -39,9 +77,9 @@ export function createChatResponse(model: string, content: string) {
       },
     ],
     usage: {
-      prompt_tokens: 0,
-      completion_tokens: words,
-      total_tokens: words,
+      prompt_tokens: promptTokens,
+      completion_tokens: completionTokens,
+      total_tokens: promptTokens + completionTokens,
     },
   };
 }
@@ -69,9 +107,8 @@ export function normalizeCompletionPrompt(prompt: CompletionRequest["prompt"]): 
   return "";
 }
 
-export function createCompletionResponse(model: string, text: string) {
+export function createCompletionResponse(model: string, text: string, promptTokens = 0, completionTokens = 0) {
   const now = Math.floor(Date.now() / 1000);
-  const words = text.trim() ? text.trim().split(/\s+/).length : 0;
   return {
     id: `cmpl_${crypto.randomUUID().replaceAll("-", "")}`,
     object: "text_completion",
@@ -85,9 +122,9 @@ export function createCompletionResponse(model: string, text: string) {
       },
     ],
     usage: {
-      prompt_tokens: 0,
-      completion_tokens: words,
-      total_tokens: words,
+      prompt_tokens: promptTokens,
+      completion_tokens: completionTokens,
+      total_tokens: promptTokens + completionTokens,
     },
   };
 }
@@ -106,5 +143,21 @@ export function createCompletionSSEChunk(model: string, text: string, done = fal
         finish_reason: done ? "stop" : null,
       },
     ],
+  };
+}
+
+export function createEmbeddingResponse(model: string, embeddings: Array<{ embedding: number[]; index: number }>, totalTokens: number) {
+  return {
+    object: "list",
+    data: embeddings.map((item) => ({
+      object: "embedding",
+      embedding: item.embedding,
+      index: item.index,
+    })),
+    model,
+    usage: {
+      prompt_tokens: totalTokens,
+      total_tokens: totalTokens,
+    },
   };
 }

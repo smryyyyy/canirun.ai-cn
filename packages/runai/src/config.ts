@@ -13,9 +13,16 @@ export const RUNAI_LLAMA_CANDIDATES = process.env.RUNAI_LLAMA_CANDIDATES
     .map((value) => value.trim())
     .filter(Boolean)
   : ["llama-cli", "llama"];
-export const RUNAI_VERSION = "0.1.0";
+export const RUNAI_VERSION = "0.2.0";
 export const RUNAI_TELEMETRY_ENDPOINT = process.env.RUNAI_TELEMETRY_ENDPOINT || "https://canirun.ai/api/runai/metrics";
 export const RUNAI_TELEMETRY_DISABLED = process.env.RUNAI_TELEMETRY_DISABLED === "1";
+
+export const RUNAI_KEEP_ALIVE_MS = Number(process.env.RUNAI_KEEP_ALIVE || "300") * 1000;
+export const RUNAI_MAX_QUEUE = Number(process.env.RUNAI_MAX_QUEUE || "64");
+export const RUNAI_DEFAULT_MAX_TOKENS = Number(process.env.RUNAI_MAX_TOKENS || "2048");
+export const RUNAI_DAEMON_PID_FILE = join(RUNAI_HOME_DIR, "runai.pid");
+export const RUNAI_DAEMON_LOG_FILE = join(RUNAI_HOME_DIR, "runai.log");
+export const OLLAMA_MODEL_DIR = process.env.OLLAMA_MODELS || join(homedir(), ".ollama", "models");
 
 export const CHIP_BW_GBS: Record<string, number> = {
   "m1": 68,
