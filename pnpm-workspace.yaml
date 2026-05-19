@@ -1,0 +1,13 @@
+packages:
+  - "packages/*"
+
+allowBuilds:
+  esbuild: true
+  node-llama-cpp: true
+  onnxruntime-node: true
+  protobufjs: true
+  sharp: true
+
+minimumReleaseAgeExclude:
+  - astro@6.3.5
+  - tsx@4.22.2

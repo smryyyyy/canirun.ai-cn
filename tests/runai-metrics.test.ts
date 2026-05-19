@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test";
+import { describe, expect, test } from "vitest";
 import { sanitizeRunaiMetric } from "../src/lib/runai-metrics";
 
 describe("sanitizeRunaiMetric", () => {

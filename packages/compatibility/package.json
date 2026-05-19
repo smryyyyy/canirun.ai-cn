@@ -1,0 +1,61 @@
+{
+  "name": "@canirun/compatibility",
+  "version": "0.1.0",
+  "description": "Browser compatibility checks for local AI models in CanIRun.ai",
+  "type": "module",
+  "packageManager": "pnpm@11.1.3",
+  "sideEffects": false,
+  "homepage": "https://canirun.ai",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/midudev/canirun.ai.git",
+    "directory": "packages/compatibility"
+  },
+  "bugs": {
+    "url": "https://github.com/midudev/canirun.ai/issues"
+  },
+  "keywords": [
+    "ai",
+    "compatibility",
+    "hardware",
+    "webgpu",
+    "llm",
+    "canirun"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "development": "./src/index.ts",
+      "source": "./src/index.ts",
+      "import": "./dist/index.js"
+    },
+    "./ui": {
+      "types": "./dist/ui.d.ts",
+      "development": "./src/ui.ts",
+      "source": "./src/ui.ts",
+      "import": "./dist/ui.js"
+    },
+    "./device-slugs": {
+      "types": "./dist/device-slugs.d.ts",
+      "development": "./src/device-slugs.ts",
+      "source": "./src/device-slugs.ts",
+      "import": "./dist/device-slugs.js"
+    }
+  },
+  "files": [
+    "src",
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "prepack": "pnpm run build"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "devDependencies": {
+    "@webgpu/types": "0.1.70",
+    "typescript": "6.0.3"
+  }
+}

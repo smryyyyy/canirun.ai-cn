@@ -2,29 +2,41 @@
   "name": "canirun-ai",
   "type": "module",
   "version": "0.0.1",
+  "private": true,
+  "packageManager": "pnpm@11.1.3",
   "scripts": {
-    "dev": "astro dev",
-    "build": "astro build",
+    "dev": "pnpm packages:build && astro dev",
+    "build": "pnpm packages:build && astro build",
     "preview": "astro preview",
     "astro": "astro",
-    "scrape": "bun run scripts/scrape-models.ts",
-    "fetch:readmes": "bun run scripts/fetch-ollama-readmes.ts",
-    "test": "bun test"
+    "scrape": "tsx scripts/scrape-models.ts",
+    "fetch:readmes": "tsx scripts/fetch-ollama-readmes.ts",
+    "packages:build": "pnpm --filter @canirun/compatibility --filter @canirun/models build",
+    "packages:typecheck": "pnpm --filter @canirun/compatibility --filter @canirun/models typecheck",
+    "test": "vitest run"
   },
   "dependencies": {
     "@astrojs/sitemap": "3.7.2",
-    "@astrojs/vercel": "^10.0.4",
-    "@libsql/client": "^0.17.2",
+    "@astrojs/vercel": "10.0.7",
+    "@canirun/compatibility": "workspace:*",
+    "@canirun/models": "workspace:*",
+    "@huggingface/transformers": "4.2.0",
+    "@libsql/client": "0.17.3",
     "@resvg/resvg-js": "2.6.2",
-    "@tailwindcss/vite": "4.2.2",
-    "@zumer/snapdom": "2.7.0",
-    "astro": "6.1.3",
+    "@tailwindcss/vite": "4.3.0",
+    "@zumer/snapdom": "2.12.0",
+    "astro": "6.3.3",
+    "comlink": "4.4.2",
     "geist": "1.7.0",
+    "pdfjs-dist": "5.7.284",
     "satori": "0.26.0",
-    "sharp": "^0.34.5",
-    "tailwindcss": "4.2.2"
+    "sharp": "0.34.5",
+    "tailwindcss": "4.3.0"
   },
   "devDependencies": {
-    "@webgpu/types": "0.1.69"
+    "@webgpu/types": "0.1.70",
+    "tsx": "4.22.1",
+    "typescript": "6.0.3",
+    "vitest": "4.1.6"
   }
 }

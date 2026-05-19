@@ -108,7 +108,7 @@ Open [localhost:4321](http://localhost:4321) to see the site.
 | `pnpm dev` | Start dev server at `localhost:4321` |
 | `pnpm build` | Build production site to `./dist/` |
 | `pnpm preview` | Preview production build locally |
-| `pnpm scrape` | Fetch model stats from HuggingFace (requires [Bun](https://bun.sh)) |
+| `pnpm scrape` | Fetch model stats from HuggingFace |
 
 ## Project Structure
 
