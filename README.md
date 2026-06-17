@@ -11,6 +11,8 @@ No installs, no benchmarks, no guesswork.
 
 [**canirun.ai**](https://canirun.ai) · [Report Bug](https://github.com/midudev/canirun.ai/issues) · [Request Model](https://github.com/midudev/canirun.ai/issues)
 
+[🇨🇳 中文版](README.zh-CN.md)
+
 </div>
 
 ---

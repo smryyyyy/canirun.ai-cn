@@ -1,0 +1,53 @@
+---
+import Layout from "@/layouts/Layout.astro";
+import NavHeader from "../components/NavHeader.astro";
+import ModelListContent from "../components/ModelListContent.astro";
+import { getAllDeviceSlugs } from "@/lib/device-slugs";
+import IconArrowLeft from "@/icons/arrow-left.svg";
+
+export function getStaticPaths() {
+  return getAllDeviceSlugs().map((d) => ({
+    params: { id: d.slug },
+    props: { deviceKey: d.key, deviceName: d.name },
+  }));
+}
+
+const { deviceKey, deviceName } = Astro.props;
+---
+
+<Layout
+  title={`${deviceName} — 能运行 AI 吗？ | CanIRun.ai`}
+  description={`了解你的 ${deviceName} 可以在本地运行哪些 AI 模型，包括显存需求、性能预估和兼容性信息。`}
+>
+  <Fragment slot="head">
+    <script type="application/ld+json" set:html={JSON.stringify({
+      "@context": "https://schema.org",
+      "@type": "WebApplication",
+      "name": `CanIRun.ai — ${deviceName}`,
+      "url": `https://canirun.ai/device/${Astro.params.id}`,
+      "description": `了解你的 ${deviceName} 可以在本地运行哪些 AI 模型。`,
+      "applicationCategory": "DeveloperApplication",
+      "operatingSystem": "Web Browser",
+      "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+      "creator": { "@type": "Person", "name": "midudev", "url": "https://midu.dev" }
+    })}></script>
+  </Fragment>
+  <NavHeader />
+  <ModelListContent deviceKey={deviceKey}>
+    <header slot="header" class="mb-10 text-center">
+      <a
+        href="/"
+        class="mb-4 inline-flex items-center gap-1.5 font-mono text-[13px] text-muted transition-colors hover:text-primary"
+      >
+        <IconArrowLeft class="h-3 w-3" />
+        all devices
+      </a>
+      <h1 class="font-pixel text-3xl tracking-tight text-accent sm:text-4xl">
+        {deviceName}
+      </h1>
+      <p class="mt-2 text-base text-muted">
+        你的 {deviceName} 能本地运行哪些 AI 模型？
+      </p>
+    </header>
+  </ModelListContent>
+</Layout>

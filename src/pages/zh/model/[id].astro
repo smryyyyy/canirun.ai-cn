@@ -1,0 +1,796 @@
+---
+import Layout from "@/layouts/Layout.astro"
+import NavHeader from "../components/NavHeader.astro"
+import { models, isCommercialLicense, getLicenseTier } from "@/data/models"
+import { getLicenseSlug } from "@/data/licenses"
+import hf统计 from "@/data/hf-stats.json"
+import ollamaReadmes from "@/data/ollama-readmes.json"
+import IconArrowLeft from "@/icons/arrow-left.svg"
+import IconMoe from "@/icons/moe.svg"
+import IconTool from "@/icons/tool.svg"
+import IconThinking from "@/icons/thinking.svg"
+import Icon视觉 from "@/icons/vision.svg"
+import IconStar from "@/icons/star.svg"
+import IconHuggingFace from "@/icons/logo-huggingface.svg"
+import IconOllama from "@/icons/logo-ollama.svg"
+import IconDownload from "@/icons/download.svg"
+import IconHeart from "@/icons/heart.svg"
+import IconCalendar from "@/icons/calendar.svg"
+import IconCpu from "@/icons/cpu.svg"
+import IconHelp from "@/icons/help.svg"
+import IconTerminal from "@/icons/terminal.svg"
+import Icon复制 from "@/icons/copy.svg"
+import IconEdit from "@/icons/edit.svg"
+import IconBarChart from "@/icons/bar-chart.svg"
+import IconChat from "@/icons/chat.svg"
+import IconCode from "@/icons/code.svg"
+import IconEdgeDevice from "@/icons/edge-device.svg"
+import IconMultilingual from "@/icons/multilingual.svg"
+import IconSearch from "@/icons/search.svg"
+import IconLmStudio from "@/icons/logo-lmstudio.svg"
+import IconLicense from "@/icons/license.svg"
+import { getModelTitleTransitionName } from "@/lib/view-transitions"
+
+export function getStaticPaths() {
+  return models.map((model) => ({
+    params: { id: model.id },
+    props: { model },
+  }))
+}
+
+const { model } = Astro.props
+const stats = (hf统计 as Record<string, { downloads: number; likes: number }>)[
+  model.id
+]
+const downloads = stats?.downloads || 0
+const likes = stats?.likes || 0
+const readme = (ollamaReadmes as Record<string, string>)[model.id] || null
+
+function formatNum(n: number): string {
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`
+  if (n >= 1_000) return `${(n / 1_000).toFixed(1)}K`
+  return String(n)
+}
+
+const licenseTier = getLicenseTier(model.license)
+const licenseColors = licenseTier === "open"
+  ? "border-emerald-400/30 bg-emerald-400/10 text-emerald-400"
+  : licenseTier === "partial"
+    ? "border-amber-400/30 bg-amber-400/10 text-amber-400"
+    : "border-orange-400/30 bg-orange-400/10 text-orange-400"
+const licenseHint = licenseTier === "open"
+  ? `${model.license} — 完全开源，允许商用`
+  : licenseTier === "partial"
+    ? `${model.license} — 有条件允许商用`
+    : `${model.license} — 限制性许可`
+
+const USE_CASE_ICONS: Record<string, any> = {
+  chat: IconChat,
+  code: IconCode,
+  reasoning: IconHelp,
+  vision: Icon视觉,
+  edge: IconEdgeDevice,
+  multilingual: IconMultilingual,
+  rag: IconSearch,
+}
+---
+
+<Layout
+  title={`${model.name} — CanIRun.ai`}
+  description={`${model.name} by ${model.provider}. ${model.description}`}
+  image={`/og/${model.id}.jpg`}
+>
+  <Fragment slot="head">
+    <script type="application/ld+json" set:html={JSON.stringify({
+      "@context": "https://schema.org",
+      "@graph": [
+        {
+          "@type": "BreadcrumbList",
+          "itemListElement": [
+            { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://canirun.ai" },
+            { "@type": "ListItem", "position": 2, "name": model.name, "item": `https://canirun.ai/model/${model.id}` }
+          ]
+        },
+        {
+          "@type": "SoftwareApplication",
+          "name": model.name,
+          "description": model.description,
+          "url": `https://canirun.ai/model/${model.id}`,
+          "applicationCategory": "DeveloperApplication",
+          "operatingSystem": "Cross-platform",
+          "author": { "@type": "Organization", "name": model.provider },
+          "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+          "memoryRequirements": `${model.recommendedRamGB} GB RAM recommended`,
+          "softwareRequirements": `Minimum ${model.minRamGB} GB RAM`
+        }
+      ]
+    })}></script>
+  </Fragment>
+  <NavHeader />
+  <main class="mx-auto max-w-6xl px-4 py-8 sm:px-6">
+    <!-- 返回链接 -->
+    <a
+      href="/"
+      class="mb-6 inline-flex items-center gap-1.5 font-mono text-[13px] text-muted transition-colors hover:text-primary"
+    >
+      <IconArrowLeft class="h-3 w-3" />
+      back
+    </a>
+
+    <!-- 双栏布局 -->
+    <div class="flex flex-col gap-8 lg:flex-row lg:gap-12">
+      <!-- LEFT COLUMN — Model info -->
+      <div class="min-w-0 flex-1">
+        <!-- 头部 -->
+        <header class="mb-8">
+          <div class="flex items-center gap-3">
+            <h1
+              class="font-pixel text-2xl tracking-tight text-primary sm:text-3xl"
+              style={`view-transition-name: ${getModelTitleTransitionName(model.id)};`}
+            >
+              {model.name}
+            </h1>
+            {
+              model.architecture === "moe" && (
+                <span
+                  class="rounded border border-info/20 bg-info/10 p-1 text-info h-7 w-7 inline-flex items-center justify-center"
+                  title="混合专家"
+                >
+                  <IconMoe class="h-3.5 w-3.5" />
+                </span>
+              )
+            }
+            {
+              model.tools && (
+                <span
+                  class="rounded border border-purple-400/30 bg-purple-400/10 p-1 text-purple-400 h-7 w-7 inline-flex items-center justify-center"
+                  title="工具调用"
+                >
+                  <IconTool class="h-3.5 w-3.5" />
+                </span>
+              )
+            }
+            {
+              model.thinking && (
+                <span
+                  class="rounded border border-sky-400/30 bg-sky-400/10 p-1 text-sky-400 h-7 w-7 inline-flex items-center justify-center"
+                  title="思维/推理"
+                >
+                  <IconThinking class="h-3.5 w-3.5" />
+                </span>
+              )
+            }
+            {
+              model.useCase.includes("vision") && (
+                <span
+                  class="rounded border border-rose-400/30 bg-rose-400/10 p-1 text-rose-400 h-7 w-7 inline-flex items-center justify-center"
+                  title="视觉"
+                >
+                  <Icon视觉 class="h-3.5 w-3.5" />
+                </span>
+              )
+            }
+            {
+              model.featured && (
+                <span
+                  class="rounded border border-yellow-400/30 bg-yellow-400/10 p-1 text-yellow-400 h-7 w-7 inline-flex items-center justify-center"
+                  title="热门"
+                >
+                  <IconStar class="h-3.5 w-3.5" />
+                </span>
+              )
+            }
+            {
+              model.license && (
+                <a
+                  href={`/license/${getLicenseSlug(model.license)}`}
+                  class={`inline-flex h-7 items-center gap-1 rounded border px-2 font-mono text-xs transition-opacity hover:opacity-80 ${licenseColors}`}
+                  title={licenseHint}
+                >
+                  <IconLicense class="h-3 w-3" />
+                  {model.license}
+                </a>
+              )
+            }
+          </div>
+          <p class="mt-1 font-mono text-[13px] text-muted">
+            {model.provider} · {model.params}{
+              model.activeParams ? ` (${model.activeParams})` : ""
+            } · {model.architecture === "moe" ? "混合专家" : "Dense"}
+          </p>
+          <p class="mt-3 text-base leading-relaxed text-secondary">
+            {model.description}
+          </p>
+          <!-- 链接 -->
+          <div class="mt-4 flex flex-wrap items-center gap-3">
+            <a
+              href={model.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              class="inline-flex items-center gap-2 rounded-full bg-[#FFD21E]/10 px-3.5 py-1.5 font-mono text-[13px] text-[#FFD21E] transition-colors hover:bg-[#FFD21E]/20"
+            >
+              <IconHuggingFace class="h-4 w-4" />
+              HuggingFace
+            </a>
+            {
+              model.ollamaId && (
+                <a
+                  href={`https://ollama.com/library/${model.ollamaId.split(":")[0]}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="inline-flex items-center gap-2 rounded-full bg-primary/10 px-3.5 py-1.5 font-mono text-[13px] text-primary/80 transition-colors hover:bg-primary/20"
+                >
+                  <IconOllama class="h-4 w-4" />
+                  Ollama
+                </a>
+              )
+            }
+            {
+              model.lmStudioId && (
+                <a
+                  href={`https://lmstudio.ai/models/${model.lmStudioId}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="inline-flex items-center gap-2 rounded-full bg-[#6C47FF]/10 px-3.5 py-1.5 font-mono text-[13px] text-[#6C47FF] transition-colors hover:bg-[#6C47FF]/20"
+                >
+                  <IconLmStudio class="h-4 w-4" />
+                  LM Studio
+                </a>
+              )
+            }
+          </div>
+        </header>
+
+        <!-- 统计栏 -->
+        <div
+          class="mb-8 flex flex-wrap items-center gap-4 font-mono text-[13px] text-secondary"
+        >
+          <span class="inline-flex items-center gap-1.5">
+            <IconDownload class="h-3.5 w-3.5 text-muted" />
+            {formatNum(downloads)} downloads
+          </span>
+          <span class="inline-flex items-center gap-1.5">
+            <IconHeart class="h-3.5 w-3.5 text-muted" />
+            {formatNum(likes)} likes
+          </span>
+          {
+            model.releaseDate && (
+              <span class="inline-flex items-center gap-1.5">
+                <IconCalendar class="h-3.5 w-3.5 text-muted" />
+                {model.releaseDate}
+              </span>
+            )
+          }
+          <span class="inline-flex items-center gap-1.5">
+            <IconCpu class="h-3.5 w-3.5 text-muted" />
+            {
+              model.contextLength >= 1024
+                ? `${Math.round(model.contextLength / 1024)}K`
+                : model.contextLength
+            } context
+          </span>
+        </div>
+
+        <!-- 使用场景 -->
+        <section class="mb-8">
+          <h2 class="mb-3 font-pixel text-sm text-muted">使用场景</h2>
+          <div class="flex flex-wrap gap-2">
+            {
+              model.useCase.map((tag: string) => {
+                const Icon = USE_CASE_ICONS[tag];
+                return (
+                  <span class="inline-flex items-center gap-1.5 rounded-md border border-edge px-2.5 py-1.5 text-[13px] text-secondary">
+                    {Icon && <Icon class="h-3.5 w-3.5" />}
+                    {tag}
+                  </span>
+                );
+              })
+            }
+          </div>
+        </section>
+
+        <!-- MoE details -->
+        {
+          model.moe && (
+            <section class="mb-8 rounded-lg border border-info/20 bg-info/5 p-4">
+              <h2 class="mb-2 font-pixel text-sm text-info">
+                混合专家
+              </h2>
+              <div class="flex flex-wrap gap-6 font-mono text-[13px] text-secondary">
+                <div>
+                  <span class="text-muted">Total experts:</span>{" "}
+                  <span>{model.moe.numExperts}</span>
+                </div>
+                <div>
+                  <span class="text-muted">Active experts:</span>{" "}
+                  <span>{model.moe.activeExperts}</span>
+                </div>
+                <div>
+                  <span class="text-muted">Active params:</span>{" "}
+                  <span>
+                    {(model.moe.activeParameters / 1_000_000_000).toFixed(1)}B
+                  </span>
+                </div>
+              </div>
+            </section>
+          )
+        }
+
+        <!-- 量化表 -->
+        <section class="mb-8">
+          <div class="mb-3 flex items-center gap-2">
+            <h2 class="font-pixel text-sm text-muted">量化选项</h2>
+            <a
+              href="/docs#quantization"
+              title="什么是量化？"
+              class="text-muted transition-colors hover:text-accent"
+            >
+              <IconHelp class="h-3.5 w-3.5" />
+            </a>
+          </div>
+          <div class="overflow-x-auto rounded-lg border border-edge">
+            <table class="w-full text-[13px]">
+              <thead>
+                <tr
+                  class="border-b border-edge bg-surface-card text-left text-xs uppercase tracking-wider text-muted"
+                >
+                  <th class="px-4 py-2.5">量化</th>
+                  <th class="px-4 py-2.5">位</th>
+                  <th class="px-4 py-2.5">显存</th>
+                  <th class="px-4 py-2.5">质量</th>
+                  <th class="px-4 py-2.5">状态</th>
+                </tr>
+              </thead>
+              <tbody>
+                {
+                  model.quants.map((q: any, i: number) => (
+                    <tr
+                      data-quant-row
+                      data-vram={q.vramGB}
+                      class={`border-b border-edge/50 ${i % 2 === 0 ? "bg-surface-card/50" : ""}`}
+                    >
+                      <td class="px-4 py-2 font-mono text-primary">{q.name}</td>
+                      <td class="px-4 py-2 font-mono text-secondary">
+                        {q.bits}
+                      </td>
+                      <td class="px-4 py-2 font-mono text-secondary">
+                        {q.vramGB} GB
+                      </td>
+                      <td class="px-4 py-2 capitalize text-secondary">
+                        {q.quality}
+                      </td>
+                      <td class="px-4 py-2">
+                        <span
+                          data-quant-status
+                          class="font-mono text-xs font-medium uppercase tracking-wider text-muted"
+                        >
+                          —
+                        </span>
+                      </td>
+                    </tr>
+                  ))
+                }
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- Ollama README -->
+        {readme && (
+          <section class="mb-8">
+            <h2 class="mb-4 font-pixel text-sm text-muted">关于此模型</h2>
+            <div class="model-readme rounded-lg border border-edge bg-surface-card/30 p-5 sm:p-6" set:html={readme} />
+          </section>
+        )}
+      </div>
+
+      <!-- RIGHT COLUMN — 安装 & compatibility -->
+      <aside class="w-full shrink-0 lg:w-80">
+        <!-- 兼容性 -->
+        <div class="pb-8 mb-8 border-b border-edge/20">
+          <h3
+            class="mb-3 inline-flex items-center gap-1.5 font-pixel text-sm text-accent"
+          >
+            <IconCpu class="h-3.5 w-3.5" />
+            Your Hardware
+          </h3>
+          <div id="hw-compat" class="space-y-2 font-mono text-[13px]" data-params={model.paramsBillions}>
+            <p class="text-muted italic">检测中...</p>
+          </div>
+        </div>
+
+        <!-- 安装 -->
+        <div class="pb-8 mb-8 border-b border-edge/20">
+          <h3 class="mb-3 inline-flex items-center gap-1.5 font-pixel text-sm text-accent">
+            <IconTerminal class="h-3.5 w-3.5" />
+            安装
+          </h3>
+          {model.ollamaId && (
+            <>
+              <p class="mb-1 font-mono text-xs text-muted">Ollama</p>
+              <div class="flex items-center gap-2 rounded-md border border-edge bg-surface px-3 py-2">
+                <code class="flex-1 font-mono text-[13px] text-primary truncate">
+                  ollama run {model.ollamaId}
+                </code>
+                <button
+                  id="copy-ollama"
+                  class="shrink-0 text-muted transition-colors hover:text-yellow-400"
+                  data-cmd={`ollama run ${model.ollamaId}`}
+                  title="复制"
+                >
+                  <Icon复制 class="h-3.5 w-3.5" />
+                </button>
+              </div>
+            </>
+          )}
+          {model.lmStudioId && (
+            <>
+              <p class={`font-mono text-xs text-muted ${model.ollamaId ? "mt-4" : ""} mb-1`}>LM Studio</p>
+              <a
+                href={`https://lmstudio.ai/models/${model.lmStudioId}`}
+                target="_blank"
+                rel="noopener"
+                class="inline-flex items-center gap-1.5 font-mono text-[13px] text-[#6C47FF] underline decoration-[#6C47FF]/30 underline-offset-2 hover:text-[#8B6CFF]"
+              >
+                <IconLmStudio class="h-3 w-3 shrink-0" />
+                Open in LM Studio
+              </a>
+            </>
+          )}
+          <p class={`font-mono text-xs text-muted ${(model.ollamaId || model.lmStudioId) ? "mt-4" : ""} mb-1`}>
+            llama.cpp / GGUF
+          </p>
+          <a
+            href={`https://huggingface.co/models?search=${encodeURIComponent(model.name + " GGUF")}`}
+            target="_blank"
+            rel="noopener"
+            class="inline-flex items-center gap-1.5 font-mono text-[13px] text-yellow-400 underline decoration-yellow-400/30 underline-offset-2 hover:text-yellow-300"
+          >
+            <IconDownload class="h-3 w-3 shrink-0" />
+            Download GGUF from HuggingFace
+          </a>
+          {!model.ollamaId && !model.lmStudioId && (
+            <p class="mt-3 text-xs text-muted">
+              No Ollama or LM Studio ID available for this model.
+            </p>
+          )}
+        </div>
+
+        <!-- 关键规格 -->
+        <div class="pb-8 mb-8 border-b border-edge/20">
+          <h3
+            class="mb-3 inline-flex items-center gap-1.5 font-pixel text-sm text-accent"
+          >
+            <IconEdit class="h-3.5 w-3.5" />
+            Specs
+          </h3>
+          <dl class="space-y-2 font-mono text-[13px]">
+            <div class="flex justify-between">
+              <dt class="text-muted">参数量</dt>
+              <dd class="text-primary">{model.params}</dd>
+            </div>
+            {
+              model.activeParams && (
+                <div class="flex justify-between">
+                  <dt class="text-muted">激活</dt>
+                  <dd class="text-primary">{model.activeParams}</dd>
+                </div>
+              )
+            }
+            <div class="flex justify-between">
+              <dt class="text-muted">架构</dt>
+              <dd class="text-primary">
+                {model.architecture === "moe" ? "MoE" : "Dense"}
+              </dd>
+            </div>
+            <div class="flex justify-between">
+              <dt class="text-muted">工具调用</dt>
+              <dd class={model.tools ? "text-purple-400" : "text-muted"}>
+                {model.tools ? "Supported" : "No"}
+              </dd>
+            </div>
+            <div class="flex justify-between">
+              <dt class="text-muted">思维</dt>
+              <dd class={model.thinking ? "text-sky-400" : "text-muted"}>
+                {model.thinking ? "Supported" : "No"}
+              </dd>
+            </div>
+            <div class="flex justify-between">
+              <dt class="text-muted">上下文</dt>
+              <dd class="text-primary">
+                {
+                  model.contextLength >= 1024
+                    ? `${Math.round(model.contextLength / 1024)}K`
+                    : model.contextLength
+                } tokens
+              </dd>
+            </div>
+            <div class="flex justify-between">
+              <dt class="text-muted">最小内存</dt>
+              <dd class="text-primary">{model.minRamGB} GB</dd>
+            </div>
+            <div class="flex justify-between">
+              <dt class="text-muted">推荐</dt>
+              <dd class="text-primary">{model.recommendedRamGB} GB</dd>
+            </div>
+            <div class="flex justify-between">
+              <dt class="text-muted">系列</dt>
+              <dd class="text-primary">{model.family}</dd>
+            </div>
+            {
+              model.releaseDate && (
+                <div class="flex justify-between">
+                  <dt class="text-muted">发布时间</dt>
+                  <dd class="text-primary">{model.releaseDate}</dd>
+                </div>
+              )
+            }
+            {
+              model.license && (
+                <div class="flex justify-between">
+                  <dt class="text-muted">许可</dt>
+                  <dd class={isCommercialLicense(model.license) ? "text-emerald-400" : "text-primary"}>
+                    <a href={`/license/${getLicenseSlug(model.license)}`} class="underline decoration-current/30 underline-offset-2 hover:decoration-current">
+                      {model.license}
+                    </a>
+                    {isCommercialLicense(model.license) && (
+                      <span class="ml-1 text-[10px] text-emerald-400/70">✓ Commercial</span>
+                    )}
+                  </dd>
+                </div>
+              )
+            }
+          </dl>
+        </div>
+
+        <!-- 统计 -->
+        {
+          (downloads > 0 || likes > 0) && (
+            <div>
+              <h3 class="mb-3 inline-flex items-center gap-1.5 font-pixel text-sm text-accent">
+                <IconBarChart class="h-3.5 w-3.5" />
+                HuggingFace 统计
+              </h3>
+              <dl class="space-y-2 font-mono text-[13px]">
+                <div class="flex justify-between">
+                  <dt class="inline-flex items-center gap-1.5 text-muted">
+                    <IconDownload class="h-3 w-3" />
+                    Downloads
+                  </dt>
+                  <dd class="text-primary">{formatNum(downloads)}</dd>
+                </div>
+                <div class="flex justify-between">
+                  <dt class="inline-flex items-center gap-1.5 text-muted">
+                    <IconHeart class="h-3 w-3" />
+                    Likes
+                  </dt>
+                  <dd class="text-primary">{formatNum(likes)}</dd>
+                </div>
+              </dl>
+            </div>
+          )
+        }
+      </aside>
+    </div>
+  </main>
+</Layout>
+
+<script>
+  import {
+    detectHardware,
+    evaluateModelComplete,
+    cleanGPUName,
+    getDisplayName,
+    getHardwareOverrides,
+    saveHardwareOverrides,
+    applyOverrides,
+    getDeviceOverrides,
+    buildSelectOptions,
+    RAM_OPTIONS,
+    BW_OPTIONS,
+    GPU_DB,
+    APPLE_DB,
+    GRADES,
+  } from "@/lib/hardware"
+  import type { HardwareInfo, HardwareOverrides } from "@/lib/hardware"
+  import { fitSelectWidth, buildGroupedDeviceOptions } from "@/lib/hardware-ui"
+  import { DEVICE_CATEGORY_ORDER } from "@/lib/hardware"
+
+  document.addEventListener('astro:page-load', () => {
+    const copyBtn = document.getElementById("copy-ollama")
+    if (copyBtn) {
+      copyBtn.addEventListener("click", async () => {
+        const cmd = copyBtn.dataset.cmd || ""
+        try {
+          await navigator.clipboard.writeText(cmd)
+          copyBtn.innerHTML = `<svg class="h-3.5 w-3.5 text-accent" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>`
+          setTimeout(() => {
+            copyBtn.innerHTML = `<svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>`
+          }, 2000)
+        } catch {}
+      })
+    }
+
+    const container = document.getElementById("hw-compat")!
+    if (!container) return
+
+    const paramsBillions = parseFloat(container.dataset.params || "0")
+    let detectedHW: HardwareInfo
+    let currentHW: HardwareInfo
+
+    function buildSelectHTML(id: string, presets: number[], detected: number | null, override: number | undefined, formatter: (v: number) => string): string {
+      const options = buildSelectOptions(presets, detected)
+      if (override !== undefined && override > 0 && !options.includes(override)) {
+        options.push(override)
+        options.sort((a, b) => a - b)
+      }
+      const selectedValue = override ?? detected
+      let html = `<select id="${id}" class="hw-editable-select text-primary">`
+      for (const v of options) {
+        const selected = v === selectedValue ? " selected" : ""
+        const label = formatter(v) + (v === detected ? " ✱" : "")
+        html += `<option value="${v}"${selected}>${label}</option>`
+      }
+      html += "</select>"
+      return html
+    }
+
+    function updateQuantRows(hw: HardwareInfo) {
+      const rows = document.querySelectorAll<HTMLElement>("[data-quant-row]")
+      rows.forEach((row) => {
+        const vram = parseFloat(row.dataset.vram || "0")
+        const { toksPerSec, grade } = evaluateModelComplete(vram, hw, paramsBillions)
+        const info = GRADES[grade]
+        const statusEl = row.querySelector("[data-quant-status]") as HTMLElement
+        if (statusEl) {
+          statusEl.textContent = `${info.label}${toksPerSec ? ` · ~${toksPerSec} t/s` : ""}`
+          statusEl.style.color = info.color
+        }
+      })
+    }
+
+    function buildDeviceSelectHTML(detectedName: string, storedDevice: string | undefined): string {
+      let html = `<select id="hw-device-select" class="hw-editable-select text-primary max-w-[180px]">`
+      html += `<option value="auto">${detectedName} ✱</option>`
+      html += `<option value="custom"${storedDevice === "custom" ? " selected" : ""}>自定义</option>`
+
+      const grouped = buildGroupedDeviceOptions()
+      for (const cat of DEVICE_CATEGORY_ORDER) {
+        const items = grouped[cat]
+        if (!items?.length) continue
+        html += `<optgroup label="${cat}">`
+        for (const item of items) {
+          const selected = item.value === storedDevice ? " selected" : ""
+          html += `<option value="${item.value}"${selected}>${item.label}</option>`
+        }
+        html += `</optgroup>`
+      }
+      html += `</select>`
+      return html
+    }
+
+    function renderSidebar(hw: HardwareInfo) {
+      const overrides = getHardwareOverrides()
+
+      const rows = document.querySelectorAll<HTMLElement>("[data-quant-row]")
+      let defaultVram = 0
+      rows.forEach((row, i) => { if (i === 2) defaultVram = parseFloat(row.dataset.vram || "0") })
+      if (defaultVram === 0 && rows.length > 0) {
+        defaultVram = parseFloat((rows[0] as HTMLElement).dataset.vram || "0")
+      }
+
+      const { grade, toksPerSec: toks } = evaluateModelComplete(defaultVram, hw, paramsBillions)
+      const info = GRADES[grade]
+
+      const deviceSelect = buildDeviceSelectHTML(getDisplayName(detectedHW), overrides.device)
+
+      const effectiveRam = hw.ramGB ?? hw.totalUsableRAM
+      const ramSelect = effectiveRam
+        ? buildSelectHTML("hw-ram-select", RAM_OPTIONS, detectedHW.ramGB, overrides.ramGB ?? effectiveRam, (v) => `${v} GB`)
+        : `<span class="text-primary">未知</span>`
+
+      const effectiveBw = hw.memoryBandwidth
+      const bwRow = effectiveBw
+        ? `<div class="flex items-center justify-between"><span class="text-muted" data-tooltip="GB/s — 数据传送到处理器的速度。越高 = 推理越快" data-tooltip-pos="bottom" tabindex="0" style="cursor:help">带宽</span>${buildSelectHTML("hw-bw-select", BW_OPTIONS, detectedHW.memoryBandwidth, overrides.memoryBandwidth ?? effectiveBw, (v) => `~${v} GB/s`)}</div>`
+        : ""
+
+      let sysramRow = ""
+      if (!hw.isMobile) {
+        if (hw.isAppleSilicon) {
+          sysramRow = `<div class="flex items-center justify-between"><span class="text-muted" data-tooltip="统一内存 — Apple Silicon 在 CPU 和 GPU 之间共享内存。没有独立的系统内存可用于卸载" data-tooltip-pos="bottom" tabindex="0" style="cursor:help">内存</span><span class="text-primary opacity-50">${hw.totalUsableRAM ?? "—"} GB</span></div>`
+        } else {
+          const raw = detectedHW.deviceMemoryRaw
+          const isGte8 = raw === null || raw >= 8
+          const selected = overrides.systemRAM ?? hw.systemRAM ?? 16
+          let opts = `<select id="hw-sysram-select" class="hw-editable-select text-primary">`
+          opts += `<option value="16"${selected === 16 ? " selected" : ""}>${isGte8 ? "≥8 GB ✱" : "≥8 GB"}</option>`
+          opts += `<option value="4"${selected === 4 ? " selected" : ""}>${!isGte8 ? "<8 GB ✱" : "<8 GB"}</option>`
+          opts += `<option disabled>───</option>`
+          for (const v of [8, 16, 32, 64, 128]) {
+            opts += `<option value="${v}"${selected === v ? " selected" : ""}>${v} GB</option>`
+          }
+          opts += `</select>`
+          sysramRow = `<div class="flex items-center justify-between"><span class="text-muted" data-tooltip="系统内存 — 当模型无法放入 VRAM 时用于 CPU 卸载。更多内存 = 可通过卸载运行更大模型（较慢）" data-tooltip-pos="bottom" tabindex="0" style="cursor:help">内存</span>${opts}</div>`
+        }
+      }
+
+      container.innerHTML = `
+        <div class="flex items-center justify-between">
+          <span class="text-muted">设备</span>
+          ${deviceSelect}
+        </div>
+        <div class="flex items-center justify-between">
+          <span class="text-muted" data-tooltip="用于加载模型的显存。在 Apple Silicon/iGPU 上，与系统内存共享" data-tooltip-pos="bottom" tabindex="0" style="cursor:help">显存</span>
+          ${ramSelect}
+        </div>
+        ${sysramRow}
+        ${bwRow}
+        <div class="mt-2 flex items-center justify-between border-t border-edge pt-2">
+          <span class="text-muted">Q4_K_M</span>
+          <span class="inline-flex items-center gap-1.5 font-mono text-xs font-medium uppercase tracking-wider" style="color:${info.color}">
+            ${info.label}
+            ${toks ? `<span class="text-muted normal-case">· ~${toks} t/s</span>` : ""}
+          </span>
+        </div>
+      `
+
+      const deviceEl = document.getElementById("hw-device-select") as HTMLSelectElement
+      const ramEl = document.getElementById("hw-ram-select") as HTMLSelectElement
+      const sysramEl = document.getElementById("hw-sysram-select") as HTMLSelectElement
+      const bwEl = document.getElementById("hw-bw-select") as HTMLSelectElement
+
+      if (deviceEl) fitSelectWidth(deviceEl)
+      if (ramEl) fitSelectWidth(ramEl)
+      if (sysramEl) fitSelectWidth(sysramEl)
+      if (bwEl) fitSelectWidth(bwEl)
+
+      deviceEl?.addEventListener("change", () => {
+        const key = deviceEl.value
+        if (key === "auto") {
+          saveHardwareOverrides({})
+          currentHW = { ...detectedHW }
+        } else if (key === "custom") {
+          const prev = getHardwareOverrides()
+          prev.device = "custom"
+          saveHardwareOverrides(prev)
+          fitSelectWidth(deviceEl)
+          return
+        } else {
+          const devOverrides = getDeviceOverrides(key)
+          if (!devOverrides) return
+          saveHardwareOverrides(devOverrides)
+          currentHW = applyOverrides(detectedHW, devOverrides)
+        }
+        updateQuantRows(currentHW)
+        renderSidebar(currentHW)
+      })
+
+      function handleFieldChange() {
+        const newOverrides = getHardwareOverrides()
+        if (ramEl?.value) newOverrides.ramGB = Number(ramEl.value)
+        if (sysramEl?.value) newOverrides.systemRAM = Number(sysramEl.value)
+        if (bwEl?.value) newOverrides.memoryBandwidth = Number(bwEl.value)
+        if (!newOverrides.device || newOverrides.device === "auto") {
+          newOverrides.device = "custom"
+        }
+        saveHardwareOverrides(newOverrides)
+        currentHW = applyOverrides(detectedHW, newOverrides)
+        updateQuantRows(currentHW)
+        renderSidebar(currentHW)
+      }
+
+      ramEl?.addEventListener("change", handleFieldChange)
+      sysramEl?.addEventListener("change", handleFieldChange)
+      bwEl?.addEventListener("change", handleFieldChange)
+    }
+
+    async function init() {
+      detectedHW = await detectHardware()
+      currentHW = applyOverrides(detectedHW)
+      updateQuantRows(currentHW)
+      renderSidebar(currentHW)
+    }
+
+    init()
+  })
+</script>

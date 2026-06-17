@@ -1,0 +1,582 @@
+---
+import Layout from "@/layouts/Layout.astro";
+import NavHeader from "./components/NavHeader.astro";
+import Footer from "./components/Footer.astro";
+import { models } from "@/data/models";
+import IconGpu from "@/icons/gpu.svg";
+
+const sortedModels = [...models].sort(
+  (a, b) => a.paramsBillions - b.paramsBillions
+);
+---
+
+<Layout
+  title="对比设备 — CanIRun.ai"
+  description="并排对比两台设备上各AI模型的运行表现。GPU、Apple Silicon 和移动端对比。"
+>
+  <NavHeader />
+  <main class="mx-auto max-w-6xl px-4 pb-20 pt-10 sm:px-6">
+    <header class="mb-10 text-center">
+      <h1 class="font-pixel text-3xl tracking-tight text-accent sm:text-4xl">
+        对比设备
+      </h1>
+      <p class="mt-2 text-base text-muted">
+        选择两台设备，查看每个AI模型在它们上的表现。
+      </p>
+    </header>
+
+    <!-- Device Selectors -->
+    <section class="mb-10 grid grid-cols-1 gap-4 sm:grid-cols-2">
+      <div class="rounded-lg border border-edge/60 bg-surface-card p-4">
+        <label class="mb-2 flex items-center gap-2 font-mono text-[13px] text-muted uppercase tracking-wider">
+          <IconGpu class="h-3.5 w-3.5 shrink-0" />
+          设备 A
+        </label>
+        <select id="device-a" class="compare-select w-full">
+          <option value="auto">正在检测你的设备...</option>
+        </select>
+      </div>
+      <div class="rounded-lg border border-edge/60 bg-surface-card p-4">
+        <label class="mb-2 flex items-center gap-2 font-mono text-[13px] text-muted uppercase tracking-wider">
+          <IconGpu class="h-3.5 w-3.5 shrink-0" />
+          设备 B
+        </label>
+        <select id="device-b" class="compare-select w-full">
+          <option value="">选择一个设备...</option>
+        </select>
+      </div>
+    </section>
+
+    <!-- Device Specs Summary -->
+    <section id="specs-bar" class="mb-8 hidden">
+      <div class="grid grid-cols-2 gap-4">
+        <div id="specs-a" class="rounded-lg border border-edge/40 bg-surface-raised px-4 py-3 font-mono text-[13px] text-secondary"></div>
+        <div id="specs-b" class="rounded-lg border border-edge/40 bg-surface-raised px-4 py-3 font-mono text-[13px] text-secondary"></div>
+      </div>
+    </section>
+
+    <!-- 空状态 -->
+    <div id="empty-state" class="py-20 text-center">
+      <p class="font-pixel text-lg text-muted/60">正在检测你的硬件...</p>
+      <p class="mt-2 text-base text-muted/40">我们将自动把你的设备与 M5 Max 进行对比</p>
+    </div>
+
+    <!-- Comparison Table -->
+    <div id="compare-table" class="hidden">
+      <!-- Sort & Summary bar -->
+      <div class="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div class="flex items-center gap-2">
+          <label for="sort-by" class="font-mono text-[13px] text-muted uppercase tracking-wider">排序</label>
+          <select id="sort-by" class="compare-select compare-select--sm">
+            <option value="params-asc">尺寸 ↑</option>
+            <option value="params-desc">尺寸 ↓</option>
+            <option value="release-desc">最新</option>
+            <option value="release-asc">最早</option>
+            <option value="name-asc">名称 A→Z</option>
+            <option value="name-desc">名称 Z→A</option>
+            <option value="context-desc">上下文 ↓</option>
+            <option value="context-asc">上下文 ↑</option>
+            <option value="vram-asc">内存 ↑</option>
+            <option value="vram-desc">内存 ↓</option>
+          </select>
+        </div>
+        <div id="compare-summary" class="flex items-center justify-center gap-6 font-mono text-sm">
+        <span class="flex items-center gap-1.5">
+          <span class="h-2.5 w-2.5 rounded-full" style="background: var(--color-can-run)"></span>
+          <span class="text-secondary"><span id="header-a-label">A</span> 胜出: <strong id="wins-a" class="text-primary">0</strong></span>
+        </span>
+        <span class="flex items-center gap-1.5">
+          <span class="h-2.5 w-2.5 rounded-full" style="background: var(--color-maybe)"></span>
+          <span class="text-secondary">平局: <strong id="wins-tie" class="text-primary">0</strong></span>
+        </span>
+        <span class="flex items-center gap-1.5">
+          <span class="h-2.5 w-2.5 rounded-full" style="background: var(--color-info)"></span>
+          <span class="text-secondary"><span id="header-b-label">B</span> 胜出: <strong id="wins-b" class="text-primary">0</strong></span>
+        </span>
+        </div>
+      </div>
+
+      <!-- Table Header -->
+      <div class="compare-row compare-header sticky top-0 z-10 bg-surface font-mono text-xs uppercase tracking-wider text-muted">
+        <div class="col-model">模型</div>
+        <div class="col-device text-center" id="col-header-a">设备 A</div>
+        <div class="col-device text-center" id="col-header-b">设备 B</div>
+      </div>
+
+      <!-- Model Rows -->
+      <div id="compare-rows">
+        {sortedModels.map((model) => {
+          const q4 = model.quants.find(q => q.name === "Q4_K_M") || model.quants[0];
+          return (
+          <a href={`/model/${model.id}`} class="compare-row group" data-compare-id={model.id}
+            data-sort-params={model.paramsBillions}
+            data-sort-name={model.name.toLowerCase()}
+            data-sort-release={model.releaseDate || "0000-00"}
+            data-sort-context={model.contextLength}
+            data-sort-vram={q4?.vramGB ?? 0}
+          >
+            <div class="col-model min-w-0">
+              <span class="truncate font-pixel text-sm text-primary group-hover:text-accent transition-colors">{model.name}</span>
+              <span class="ml-2 font-mono text-xs text-muted shrink-0">{model.params}</span>
+            </div>
+            <div class="col-device" data-side="a">
+              <span data-grade class="font-mono text-xs font-medium uppercase tracking-wider text-muted">—</span>
+              <span data-score-num class="font-mono text-[11px] text-muted/50" data-tooltip="评分 = 速度 (55%) + 内存余量 (35%) + 模型质量加成" tabindex="0"></span>
+              <span data-toks class="font-mono text-xs text-muted"></span>
+              <span data-mem class="font-mono text-[11px] text-muted/50"></span>
+            </div>
+            <div class="col-device" data-side="b">
+              <span data-grade class="font-mono text-xs font-medium uppercase tracking-wider text-muted">—</span>
+              <span data-score-num class="font-mono text-[11px] text-muted/50" data-tooltip="评分 = 速度 (55%) + 内存余量 (35%) + 模型质量加成" tabindex="0"></span>
+              <span data-toks class="font-mono text-xs text-muted"></span>
+              <span data-mem class="font-mono text-[11px] text-muted/50"></span>
+            </div>
+          </a>
+          );
+        })}
+      </div>
+    </div>
+
+    <Footer class="mt-20" />
+  </main>
+</Layout>
+
+<script>
+  import {
+    detectHardware,
+    evaluateModelComplete,
+    getDisplayName,
+    getDeviceOverrides,
+    applyOverrides,
+    getHardwareOverrides,
+  } from "@/lib/hardware";
+  import type { HardwareInfo, Grade, GradeInfo } from "@/lib/hardware";
+  import { appendDeviceOptgroups, formatChipName } from "@/lib/hardware-ui";
+  import { models } from "@/data/models";
+
+  const DEFAULT_DEVICE_B = "apple:m5 max";
+
+  const GRADES: Record<Grade, GradeInfo> = {
+    "S": { letter: "S", label: "运行流畅",  color: "var(--color-can-run)" },
+    "A": { letter: "A", label: "运行良好",   color: "var(--color-grade-a)" },
+    "B": { letter: "B", label: "尚可",      color: "var(--color-grade-b)" },
+    "C": { letter: "C", label: "勉强运行",   color: "var(--color-maybe)" },
+    "D": { letter: "D", label: "几乎无法运行", color: "var(--color-grade-d)" },
+    "F": { letter: "F", label: "太重了",   color: "var(--color-cannot-run)" },
+    "?": { letter: "?", label: "未知",     color: "var(--color-muted)" },
+  };
+
+  const $ = <T extends Element = HTMLElement>(s: string) => document.querySelector<T>(s);
+
+  let detectedHW: HardwareInfo | null = null;
+
+  function resetAndPopulateSelect(select: HTMLSelectElement, firstOption: { value: string; text: string }) {
+    select.innerHTML = "";
+    const first = document.createElement("option");
+    first.value = firstOption.value;
+    first.textContent = firstOption.text;
+    select.appendChild(first);
+
+    appendDeviceOptgroups(select);
+  }
+
+  function buildHardwareInfo(deviceKey: string): HardwareInfo | null {
+    if (deviceKey === "auto") return detectedHW;
+
+    const overrides = getDeviceOverrides(deviceKey);
+    if (!overrides) return null;
+
+    return {
+      gpuRenderer: null,
+      gpuVendor: null,
+      gpuCores: overrides.gpuCores ?? null,
+      ramGB: overrides.ramGB ?? null,
+      estimatedVRAM: overrides.estimatedVRAM ?? null,
+      memoryBandwidth: overrides.memoryBandwidth ?? null,
+      systemRAM: overrides.systemRAM ?? null,
+      deviceMemoryRaw: null,
+      webgpu: false,
+      webgpuDevice: null,
+      webgpuArch: null,
+      isAppleSilicon: overrides.isAppleSilicon ?? false,
+      totalUsableRAM: overrides.ramGB ?? null,
+      platform: null,
+      cpuBenchmark: null,
+      isMobile: overrides.isMobile ?? false,
+      deviceName: null,
+    };
+  }
+
+  function getDeviceLabel(deviceKey: string): string {
+    if (deviceKey === "auto" && detectedHW) return getDisplayName(detectedHW);
+    if (deviceKey.startsWith("apple:")) {
+      const chip = deviceKey.slice(6);
+      return formatChipName(chip);
+    }
+    if (deviceKey.startsWith("gpu:")) return deviceKey.slice(4);
+    if (deviceKey.startsWith("mobile:")) return deviceKey.slice(7);
+    return deviceKey;
+  }
+
+  function renderSpecs(container: HTMLElement, deviceKey: string, hw: HardwareInfo) {
+    const label = getDeviceLabel(deviceKey);
+    const parts: string[] = [`<strong class="text-primary">${label}</strong>`];
+    if (hw.ramGB) parts.push(`${hw.ramGB} GB ${hw.isAppleSilicon ? "Unified" : "VRAM"}`);
+    if (hw.memoryBandwidth) parts.push(`~${hw.memoryBandwidth} GB/s`);
+    if (hw.gpuCores) parts.push(`${hw.gpuCores.toLocaleString()} cores`);
+    container.innerHTML = parts.join(' <span class="text-edge">·</span> ');
+  }
+
+  function updateDynamicLabels() {
+    const selectA = $<HTMLSelectElement>("#device-a");
+    const selectB = $<HTMLSelectElement>("#device-b");
+    if (!selectA || !selectB) return;
+
+    const aLabel = getDeviceLabel(selectA.value);
+    const bLabel = getDeviceLabel(selectB.value);
+
+    const headerA = $("#header-a-label");
+    if (headerA) headerA.textContent = aLabel;
+    const headerB = $("#header-b-label");
+    if (headerB) headerB.textContent = bLabel;
+    const colHeaderA = $("#col-header-a");
+    if (colHeaderA) colHeaderA.textContent = aLabel;
+    const colHeaderB = $("#col-header-b");
+    if (colHeaderB) colHeaderB.textContent = bLabel;
+  }
+
+  function runComparison() {
+    const selectA = $<HTMLSelectElement>("#device-a");
+    const selectB = $<HTMLSelectElement>("#device-b");
+    if (!selectA || !selectB) return;
+
+    const keyA = selectA.value;
+    const keyB = selectB.value;
+
+    if ((!keyA && keyA !== "auto") || !keyB) {
+      $("#empty-state")!.classList.remove("hidden");
+      $("#compare-table")!.classList.add("hidden");
+      $("#specs-bar")!.classList.add("hidden");
+      return;
+    }
+
+    const hwA = buildHardwareInfo(keyA);
+    const hwB = buildHardwareInfo(keyB);
+    if (!hwA || !hwB) return;
+
+    updateDynamicLabels();
+
+    const specsBar = $("#specs-bar")!;
+    specsBar.classList.remove("hidden");
+    renderSpecs($("#specs-a")!, keyA, hwA);
+    renderSpecs($("#specs-b")!, keyB, hwB);
+
+    $("#empty-state")!.classList.add("hidden");
+    $("#compare-table")!.classList.remove("hidden");
+
+    let winsA = 0, winsB = 0, ties = 0;
+
+    const rows = document.querySelectorAll<HTMLElement>("[data-compare-id]");
+    rows.forEach(row => {
+      const modelId = row.dataset.compareId;
+      const model = models.find(m => m.id === modelId);
+      if (!model) return;
+
+      const q4 = model.quants.find(q => q.name === "Q4_K_M") || model.quants[0];
+      if (!q4) return;
+
+      const evalA = evaluateModelComplete(q4.vramGB, hwA, model.paramsBillions);
+      const evalB = evaluateModelComplete(q4.vramGB, hwB, model.paramsBillions);
+
+      const sideA = row.querySelector<HTMLElement>('[data-side="a"]')!;
+      const sideB = row.querySelector<HTMLElement>('[data-side="b"]')!;
+
+      renderSide(sideA, evalA);
+      renderSide(sideB, evalB);
+
+      const diff = evalA.score - evalB.score;
+      row.classList.remove("winner-a", "winner-b", "winner-tie");
+
+      let winner: "a" | "b" | "tie" = "tie";
+      if (diff > 5) {
+        winner = "a";
+      } else if (diff < -5) {
+        winner = "b";
+      } else {
+        const toksA = evalA.toksPerSec ?? 0;
+        const toksB = evalB.toksPerSec ?? 0;
+        const toksDiff = toksA - toksB;
+        if (toksDiff > 1) winner = "a";
+        else if (toksDiff < -1) winner = "b";
+      }
+
+      if (winner === "a") { row.classList.add("winner-a"); winsA++; }
+      else if (winner === "b") { row.classList.add("winner-b"); winsB++; }
+      else { row.classList.add("winner-tie"); ties++; }
+
+      row.classList.toggle("both-cannot", evalA.grade === "F" && evalB.grade === "F");
+    });
+
+    $("#wins-a")!.textContent = String(winsA);
+    $("#wins-b")!.textContent = String(winsB);
+    $("#wins-tie")!.textContent = String(ties);
+  }
+
+  function renderSide(el: HTMLElement, eval_: { grade: Grade; score: number; toksPerSec: number | null; memPct: number | null; status: string }) {
+    const gradeInfo = GRADES[eval_.grade];
+
+    const gradeEl = el.querySelector<HTMLElement>("[data-grade]")!;
+    gradeEl.textContent = gradeInfo.label;
+    gradeEl.style.color = gradeInfo.color;
+
+    const scoreEl = el.querySelector<HTMLElement>("[data-score-num]")!;
+    scoreEl.textContent = `${eval_.score}/100`;
+    scoreEl.style.color = gradeInfo.color;
+
+    const toksEl = el.querySelector<HTMLElement>("[data-toks]")!;
+    if (eval_.toksPerSec !== null && eval_.status !== "cannot-run") {
+      toksEl.textContent = `~${eval_.toksPerSec} tok/s`;
+      if (eval_.toksPerSec >= 60) toksEl.style.color = "var(--color-can-run)";
+      else if (eval_.toksPerSec >= 30) toksEl.style.color = "var(--color-grade-a)";
+      else if (eval_.toksPerSec >= 15) toksEl.style.color = "var(--color-maybe)";
+      else if (eval_.toksPerSec >= 5) toksEl.style.color = "var(--color-grade-d)";
+      else toksEl.style.color = "var(--color-cannot-run)";
+    } else {
+      toksEl.textContent = eval_.status === "cannot-run" ? "—" : "? tok/s";
+      toksEl.style.color = "var(--color-muted)";
+    }
+
+    const memEl = el.querySelector<HTMLElement>("[data-mem]")!;
+    if (eval_.memPct !== null) {
+      memEl.textContent = `${eval_.memPct}% mem`;
+      if (eval_.memPct > 100) memEl.style.color = "var(--color-cannot-run)";
+      else if (eval_.memPct > 75) memEl.style.color = "var(--color-maybe)";
+      else memEl.style.color = "var(--color-muted)";
+    } else {
+      memEl.textContent = "";
+    }
+  }
+
+  function syncToURL() {
+    const a = $<HTMLSelectElement>("#device-a")?.value || "";
+    const b = $<HTMLSelectElement>("#device-b")?.value || "";
+    const params = new URLSearchParams();
+    if (a && a !== "auto") params.set("a", a);
+    if (b && b !== DEFAULT_DEVICE_B) params.set("b", b);
+    const qs = params.toString();
+    history.replaceState(history.state, "", qs ? `?${qs}` : location.pathname);
+  }
+
+  function loadFromURL() {
+    const params = new URLSearchParams(location.search);
+    const a = params.get("a");
+    const b = params.get("b");
+    const selectA = $<HTMLSelectElement>("#device-a");
+    const selectB = $<HTMLSelectElement>("#device-b");
+    if (a && selectA) selectA.value = a;
+    if (b && selectB) selectB.value = b;
+    else if (selectB) selectB.value = DEFAULT_DEVICE_B;
+  }
+
+  function sortRows() {
+    const container = document.getElementById("compare-rows");
+    const sortSelect = $<HTMLSelectElement>("#sort-by");
+    if (!container || !sortSelect) return;
+
+    const [field, direction] = sortSelect.value.split("-") as [string, "asc" | "desc"];
+    const rows = Array.from(container.querySelectorAll<HTMLElement>("[data-compare-id]"));
+    const isString = field === "name" || field === "release";
+
+    rows.sort((a, b) => {
+      const attr = `data-sort-${field}`;
+      const valA = a.getAttribute(attr) ?? "";
+      const valB = b.getAttribute(attr) ?? "";
+
+      const cmp = isString ? valA.localeCompare(valB) : parseFloat(valA) - parseFloat(valB);
+      return direction === "desc" ? -cmp : cmp;
+    });
+
+    rows.forEach(row => container.appendChild(row));
+  }
+
+  function onChange() { runComparison(); syncToURL(); }
+
+  function getAutoLabel(): string {
+    if (detectedHW) return `${getDisplayName(detectedHW)} (已检测) ✱`;
+    return "正在检测你的设备...";
+  }
+
+  async function initCompare() {
+    const selectA = $<HTMLSelectElement>("#device-a");
+    if (!selectA) return;
+
+    detectedHW = await detectHardware();
+    const overrides = getHardwareOverrides();
+    if (Object.keys(overrides).length > 0) {
+      detectedHW = applyOverrides(detectedHW, overrides);
+    }
+
+    const autoOption = selectA.querySelector<HTMLOptionElement>('option[value="auto"]');
+    if (autoOption) autoOption.textContent = getAutoLabel();
+
+    if (selectA.value === "auto" || !selectA.value) {
+      selectA.value = "auto";
+    }
+
+    runComparison();
+    syncToURL();
+  }
+
+  function setupComparePage() {
+    const selectA = $<HTMLSelectElement>("#device-a");
+    const selectB = $<HTMLSelectElement>("#device-b");
+    if (!selectA || !selectB) return;
+
+    resetAndPopulateSelect(selectA, { value: "auto", text: getAutoLabel() });
+    resetAndPopulateSelect(selectB, { value: "", text: "选择一个设备..." });
+
+    loadFromURL();
+
+    selectA.onchange = onChange;
+    selectB.onchange = onChange;
+
+    const sortSelect = $<HTMLSelectElement>("#sort-by");
+    if (sortSelect) {
+      sortSelect.onchange = sortRows;
+    }
+
+    if (detectedHW) {
+      runComparison();
+    } else {
+      initCompare();
+    }
+  }
+
+  document.addEventListener("astro:page-load", setupComparePage);
+</script>
+
+<style>
+  .compare-select {
+    appearance: none;
+    -webkit-appearance: none;
+    border: 1px solid var(--color-edge);
+    background-color: var(--color-surface-raised);
+    color: var(--color-primary);
+    font-family: var(--font-mono);
+    font-size: 14px;
+    line-height: 1.4;
+    padding: 8px 28px 8px 12px;
+    border-radius: 8px;
+    outline: none;
+    transition: border-color 0.15s, background-color 0.15s;
+    cursor: pointer;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2356565f' stroke-width='2.5'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 8px center;
+  }
+
+  .compare-select--sm {
+    width: auto;
+    padding: 6px 26px 6px 10px;
+    font-size: 13px;
+  }
+
+  .compare-select:hover {
+    border-color: var(--color-accent);
+    background-color: var(--color-surface-hover);
+  }
+
+  .compare-select:focus {
+    border-color: var(--color-accent);
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-accent) 15%, transparent);
+  }
+
+  .compare-select option {
+    background-color: var(--color-surface-card);
+    color: var(--color-secondary);
+  }
+
+  .compare-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    align-items: stretch;
+    border-bottom: 1px solid var(--color-edge-subtle);
+    text-decoration: none;
+    transition: background-color 0.1s;
+  }
+
+  a.compare-row:hover {
+    background-color: var(--color-surface-hover);
+  }
+
+  .compare-header {
+    padding: 0.75rem 0;
+    font-weight: 500;
+    border-bottom: none;
+  }
+
+  .col-model {
+    display: flex;
+    align-items: center;
+    padding: 0.5rem;
+    gap: 0.25rem;
+  }
+
+  .col-device {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.5rem 0.25rem;
+    gap: 0.75rem;
+  }
+
+  @media (max-width: 639px) {
+    .col-device {
+      flex-direction: column;
+      gap: 0.125rem;
+    }
+
+    .col-device [data-mem] {
+      display: none;
+    }
+
+    .col-model {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 0;
+    }
+  }
+
+  @media (max-width: 479px) {
+    .col-device [data-score-num],
+    .col-device [data-toks] {
+      display: none;
+    }
+  }
+
+  .winner-a [data-side="a"] {
+    background: color-mix(in srgb, var(--color-can-run) 12%, transparent);
+  }
+
+  .winner-b [data-side="b"] {
+    background: color-mix(in srgb, var(--color-can-run) 12%, transparent);
+  }
+
+  .both-cannot {
+    opacity: 0.3;
+  }
+
+  .both-cannot:hover {
+    opacity: 0.5;
+  }
+
+  #compare-rows {
+    border: 1px solid var(--color-edge);
+    border-radius: 0.5rem;
+    overflow: hidden;
+  }
+
+  #compare-rows > a:last-child {
+    border-bottom: none;
+  }
+</style>

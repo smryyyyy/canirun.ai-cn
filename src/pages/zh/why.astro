@@ -1,0 +1,632 @@
+---
+import Layout from "@/layouts/Layout.astro"
+import NavHeader from "./components/NavHeader.astro"
+import Footer from "./components/Footer.astro"
+import IconSearch from "@/icons/search.svg"
+import IconArrowFlow from "@/icons/arrow-flow.svg"
+import IconGpu from "@/icons/gpu.svg"
+import IconBandwidth from "@/icons/bandwidth.svg"
+
+// Code snippets as raw strings to avoid Astro parsing curly braces
+const codeWebGL = `<span class="text-muted">// Get GPU renderer string</span>
+<span class="text-accent">const</span> canvas = document.createElement(<span class="text-can-run">"canvas"</span>);
+<span class="text-accent">const</span> gl = canvas.getContext(<span class="text-can-run">"webgl2"</span>);
+<span class="text-accent">const</span> ext = gl.getExtension(<span class="text-can-run">"WEBGL_debug_renderer_info"</span>);
+<span class="text-accent">const</span> gpu = gl.getParameter(ext.UNMASKED_RENDERER_WEBGL);
+<span class="text-muted">// → "ANGLE (NVIDIA, NVIDIA GeForce RTX 4090, ...)"</span>
+<span class="text-muted">// → "Apple M4 Pro GPU"</span>`
+
+const codeWebGPU = `<span class="text-accent">const</span> adapter = <span class="text-accent">await</span> navigator.gpu.requestAdapter();
+<span class="text-accent">const</span> info = adapter.info;
+<span class="text-muted">// info.device → "nvidia geforce rtx 4090"</span>
+<span class="text-muted">// info.architecture → "ampere"</span>`
+
+const codeNavigator = `<span class="text-accent">const</span> cores = navigator.hardwareConcurrency; <span class="text-muted">// → 16</span>
+<span class="text-accent">const</span> ram = navigator.deviceMemory;         <span class="text-muted">// → 8 (GB, approximate)</span>`
+
+const codeGPUDB = `<span class="text-muted">// Example entries from the GPU database</span>
+<span class="text-accent">const</span> GPU_DB = {
+  <span class="text-can-run">"RTX 4090"</span>:    { vram: <span class="text-primary">24</span>,  bw: <span class="text-primary">1008</span> }, <span class="text-muted">// GB/s</span>
+  <span class="text-can-run">"RTX 4060"</span>:    { vram: <span class="text-primary">8</span>,   bw: <span class="text-primary">272</span>  },
+  <span class="text-can-run">"RX 7900 XTX"</span>: { vram: <span class="text-primary">24</span>,  bw: <span class="text-primary">960</span>  },
+};
+
+<span class="text-accent">const</span> APPLE_DB = {
+  <span class="text-can-run">"m4 max"</span>:   { ram: <span class="text-primary">36</span>,  bw: <span class="text-primary">546</span> },
+  <span class="text-can-run">"m4 pro"</span>:   { ram: <span class="text-primary">24</span>,  bw: <span class="text-primary">273</span> },
+  <span class="text-can-run">"m4"</span>:       { ram: <span class="text-primary">16</span>,  bw: <span class="text-primary">120</span> },
+};`
+
+const codeQuants = `<span class="text-muted">// How we calculate VRAM for each quantization</span>
+<span class="text-muted">// Adds ~0.5 GB overhead for KV cache + inference runtime</span>
+<span class="text-accent">const</span> RUNTIME_OVERHEAD = <span class="text-primary">0.5</span>; <span class="text-muted">// GB</span>
+
+<span class="text-accent">function</span> makeQuants(paramsBillions) {
+  <span class="text-accent">const</span> base = paramsBillions;
+  <span class="text-accent">return</span> [
+    { name: <span class="text-can-run">"Q2_K"</span>,   vram: round(base * <span class="text-primary">0.35</span> + RUNTIME_OVERHEAD) },
+    { name: <span class="text-can-run">"Q4_K_M"</span>, vram: round(base * <span class="text-primary">0.55</span> + RUNTIME_OVERHEAD) },
+    { name: <span class="text-can-run">"Q6_K"</span>,   vram: round(base * <span class="text-primary">0.75</span> + RUNTIME_OVERHEAD) },
+    { name: <span class="text-can-run">"Q8_0"</span>,   vram: round(base * <span class="text-primary">0.95</span> + RUNTIME_OVERHEAD) },
+    { name: <span class="text-can-run">"F16"</span>,    vram: round(base * <span class="text-primary">1.85</span> + RUNTIME_OVERHEAD) },
+  ];
+}`
+
+const codeSpeed = `<span class="text-accent">const</span> efficiency = isAppleSilicon ? <span class="text-primary">0.65</span> : <span class="text-primary">0.70</span>;
+<span class="text-accent">const</span> toksPerSec = (bandwidthGBs / modelVRAM) * efficiency;
+
+<span class="text-muted">// Speed → Score mapping</span>
+<span class="text-can-run">80+ tok/s → 100 pts</span>     <span class="text-muted">// Instant</span>
+<span class="text-can-run">40+ tok/s →  85 pts</span>     <span class="text-muted">// Fast</span>
+<span class="text-maybe">20+ tok/s →  65 pts</span>     <span class="text-muted">// Good</span>
+<span class="text-maybe">10+ tok/s →  45 pts</span>     <span class="text-muted">// Usable</span>
+<span class="text-cannot-run"> 5+ tok/s →  25 pts</span>     <span class="text-muted">// Slow</span>
+<span class="text-cannot-run"> &lt;5  tok/s →  10 pts</span>     <span class="text-muted">// Painful</span>`
+
+const codeMemory = `<span class="text-accent">const</span> memPct = (modelVRAM / totalMemory) * <span class="text-primary">100</span>;
+
+<span class="text-muted">// Memory usage → Score mapping</span>
+<span class="text-can-run"> ≤30% → 100 pts</span>     <span class="text-muted">// Plenty of room</span>
+<span class="text-can-run"> ≤50% →  80 pts</span>     <span class="text-muted">// Comfortable</span>
+<span class="text-maybe"> ≤70% →  55 pts</span>     <span class="text-muted">// Moderate</span>
+<span class="text-maybe"> ≤85% →  30 pts</span>     <span class="text-muted">// Tight</span>
+<span class="text-cannot-run"> &gt;85% →  10 pts</span>     <span class="text-muted">// Very tight</span>`
+
+const codeQuality = `<span class="text-accent">const</span> qualityBonus = Math.min(<span class="text-primary">15</span>, Math.log2(paramsBillions + <span class="text-primary">1</span>) * <span class="text-primary">2.5</span>);
+<span class="text-muted">// 7B → ~7.5 pts, 70B → ~15 pts (capped)</span>`
+
+const codeHF = `<span class="text-muted">// Fetch model stats from HuggingFace API</span>
+<span class="text-accent">const</span> res = <span class="text-accent">await</span> fetch(
+  <span class="text-can-run">\`https://huggingface.co/api/models/\${repoId}\`</span>
+);
+<span class="text-accent">const</span> data = <span class="text-accent">await</span> res.json();
+<span class="text-muted">// data.downloads → 2_450_000</span>
+<span class="text-muted">// data.likes     → 12_500</span>`
+---
+
+<Layout
+  title="技术原理 — CanIRun.ai"
+  description="CanIRun.ai 如何检测您的硬件并评估 AI 模型。API、算法和方法论详解。"
+>
+  <NavHeader />
+  <main class="mx-auto max-w-3xl px-4 py-12 sm:px-6">
+    <header class="mb-10 text-center">
+      <h1 class="font-pixel text-2xl tracking-tight text-accent sm:text-3xl">
+        技术原理
+      </h1>
+      <p class="mt-2 text-base text-muted">
+        我们如何检测您的硬件、评估模型，以及所有数据的来源。
+      </p>
+    </header>
+
+    <div class="space-y-12">
+      <!-- How it works overview -->
+      <section>
+        <h2 class="mb-3 font-pixel text-base text-primary">工作原理</h2>
+        <p class="text-base leading-relaxed text-secondary">
+          CanIRun.ai 完全在您的浏览器中运行。当您访问网站时，我们通过浏览器
+          API 检测您的 GPU、CPU 和内存——然后计算哪些 AI 模型可以在您的硬件上
+          运行以及运行速度。所有数据都不会发送到任何服务器，一切都在客户端计算完成。
+        </p>
+
+        <div class="mt-4 rounded-lg border border-maybe/30 bg-maybe/5 p-4">
+          <p class="text-sm leading-relaxed text-secondary">
+            <span class="font-pixel text-xs text-maybe">重要提示</span> — 所有结果均为
+            <strong class="text-primary">估算值</strong>。浏览器 API 提供的硬件信息
+            有限——GPU 名称可能模糊不清，RAM 值为近似值，带宽数据来自规格表而非
+            实际测量。实际性能取决于许多我们无法从浏览器中测量的因素：热降频、
+            后台进程、驱动版本、系统内存压力等。请将评分作为一般参考，而非保证。
+          </p>
+        </div>
+
+        <div class="mt-4 rounded-lg border border-edge bg-surface-card p-5">
+          <div class="flex items-center justify-between gap-2 sm:gap-4">
+            <!-- Detect -->
+            <div class="flex flex-col items-center gap-2">
+              <div
+                class="flex h-11 w-11 items-center justify-center rounded-lg border border-accent/30 bg-accent/10"
+              >
+                <IconSearch class="h-5 w-5 text-accent" stroke-width="1.5" />
+              </div>
+              <span class="font-mono text-xs text-muted">检测</span>
+            </div>
+            <!-- Arrow -->
+            <IconArrowFlow class="h-4 w-10 shrink-0 text-accent/50" />
+            <!-- Match -->
+            <div class="flex flex-col items-center gap-2">
+              <div
+                class="flex h-11 w-11 items-center justify-center rounded-lg border border-accent/30 bg-accent/10"
+              >
+                <IconGpu class="h-5 w-5 text-accent" />
+              </div>
+              <span class="font-mono text-xs text-muted">匹配 GPU</span>
+            </div>
+            <!-- Arrow -->
+            <IconArrowFlow class="h-4 w-10 shrink-0 text-accent/50" />
+            <!-- Score -->
+            <div class="flex flex-col items-center gap-2">
+              <div
+                class="flex h-11 w-11 items-center justify-center rounded-lg border border-accent/30 bg-accent/10"
+              >
+                <IconBandwidth class="h-5 w-5 text-accent" />
+              </div>
+              <span class="font-mono text-xs text-muted">评分</span>
+            </div>
+            <!-- Arrow -->
+            <IconArrowFlow class="h-4 w-10 shrink-0 text-accent/50" />
+            <!-- Grade -->
+            <div class="flex flex-col items-center gap-2">
+              <div
+                class="flex h-11 w-11 items-center justify-center rounded-lg border border-can-run/30 bg-can-run/10 font-pixel text-lg text-can-run"
+              >
+                S
+              </div>
+              <span class="font-mono text-xs text-muted">评级</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Hardware Detection -->
+      <section>
+        <h2 class="mb-3 font-pixel text-base text-primary">硬件检测</h2>
+        <p class="mb-3 text-base leading-relaxed text-secondary">
+          我们使用三种浏览器 API 来识别您的硬件。无需安装任何扩展或程序。
+        </p>
+
+        <div class="space-y-4">
+          <!-- WebGL -->
+          <div class="rounded-lg border border-edge bg-surface-card p-4">
+            <h3 class="mb-2 font-mono text-sm text-accent">WebGL — GPU 识别</h3>
+            <p class="mb-3 text-sm leading-relaxed text-secondary">
+              我们创建一个隐藏的 WebGL 画布，查询 <code
+                class="rounded bg-surface px-1 py-0.5 text-primary"
+                >WEBGL_debug_renderer_info</code
+              > 扩展来获取 GPU 名称和供应商。这能精确告诉我们您使用的 GPU。
+            </p>
+            <div class="overflow-x-auto rounded-md bg-surface p-3">
+              <pre
+                class="font-mono text-[13px] leading-relaxed text-secondary"
+                set:html={codeWebGL}
+              />
+            </div>
+          </div>
+
+          <!-- WebGPU -->
+          <div class="rounded-lg border border-edge bg-surface-card p-4">
+            <h3 class="mb-2 font-mono text-sm text-accent">WebGPU — 架构信息</h3>
+            <p class="mb-3 text-sm leading-relaxed text-secondary">
+              如果您的浏览器支持 WebGPU，我们请求一个适配器来获取额外的设备信息和架构详情。
+            </p>
+            <div class="overflow-x-auto rounded-md bg-surface p-3">
+              <pre
+                class="font-mono text-[13px] leading-relaxed text-secondary"
+                set:html={codeWebGPU}
+              />
+            </div>
+          </div>
+
+          <!-- Navigator APIs -->
+          <div class="rounded-lg border border-edge bg-surface-card p-4">
+            <h3 class="mb-2 font-mono text-sm text-accent">Navigator — CPU 和 RAM</h3>
+            <p class="mb-3 text-sm leading-relaxed text-secondary">
+              我们使用 <code class="rounded bg-surface px-1 py-0.5 text-primary"
+                >navigator.hardwareConcurrency</code
+              > 获取 CPU 核心数，以及 <code
+                class="rounded bg-surface px-1 py-0.5 text-primary"
+                >navigator.deviceMemory</code
+              > 获取近似 RAM 大小。我们还运行一个简短的 CPU 基准测试（约 30ms）来估算单核性能。
+            </p>
+            <div class="overflow-x-auto rounded-md bg-surface p-3">
+              <pre
+                class="font-mono text-[13px] leading-relaxed text-secondary"
+                set:html={codeNavigator}
+              />
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- GPU Database -->
+      <section>
+        <h2 class="mb-3 font-pixel text-base text-primary">GPU 数据库</h2>
+        <p class="text-base leading-relaxed text-secondary">
+          识别出您的 GPU 后，我们会在内置数据库中查找约 40 款 GPU（NVIDIA、AMD、Intel）
+          和约 12 款 Apple Silicon 芯片。每个条目包含 VRAM 容量和内存带宽——这两个数据
+          对于本地运行 AI 模型至关重要。
+        </p>
+        <div class="mt-3 overflow-x-auto rounded-md bg-surface p-3">
+          <pre
+            class="font-mono text-[13px] leading-relaxed text-secondary"
+            set:html={codeGPUDB}
+          />
+        </div>
+      </section>
+
+      <!-- VRAM Calculation -->
+      <section>
+        <h2 class="mb-3 font-pixel text-base text-primary">VRAM 需求</h2>
+        <p class="mb-3 text-base leading-relaxed text-secondary">
+          数据库中每个模型都预计算了所有量化级别的 VRAM 需求。计算公式如下：
+        </p>
+        <div class="rounded-lg border border-accent/20 bg-accent/5 p-4">
+          <p class="text-center font-mono text-sm text-primary">
+            VRAM (GB) = <span class="text-accent">Parameters</span> &times; <span
+              class="text-accent">Bits per weight</span
+            > &div; 8 &div; 1024&sup3; + <span class="text-accent"
+              >Overhead</span
+            >
+          </p>
+        </div>
+        <p class="mt-3 text-base leading-relaxed text-secondary">
+          我们添加一个 <span class="font-mono text-primary">0.5 GB</span> 的运行时开销
+          （推理引擎、CUDA/Metal 上下文）以及 <span class="font-mono text-primary">10%</span>
+          的安全余量用于 KV 缓存和运行时缓冲区。例如，一个 70B 模型在 Q4_K_M（4-bit）下
+          大约需要 <span class="font-mono text-primary">70 &times; 4 &div; 8 = 35 GB</span>
+          &times; 1.1 + 0.5 &thickapprox; <span class="font-mono text-primary">39 GB</span>。
+        </p>
+        <div class="mt-3 overflow-x-auto rounded-md bg-surface p-3">
+          <pre
+            class="font-mono text-[13px] leading-relaxed text-secondary"
+            set:html={codeQuants}
+          />
+        </div>
+      </section>
+
+      <!-- Scoring -->
+      <section>
+        <h2 class="mb-3 font-pixel text-base text-primary">评分机制</h2>
+        <p class="mb-3 text-base leading-relaxed text-secondary">
+          评分（0–100）综合三个因素来回答："这个模型在你的硬件上运行效果如何？"
+        </p>
+
+        <!-- Score breakdown visual -->
+        <div class="mb-4 rounded-lg border border-edge bg-surface-card p-4">
+          <div class="space-y-3">
+            <div>
+              <div
+                class="mb-1 flex items-center justify-between font-mono text-[13px]"
+              >
+                <span class="text-primary">速度 (tok/s)</span>
+                <span class="text-accent">55%</span>
+              </div>
+              <div class="h-2 overflow-hidden rounded-full bg-surface">
+                <div class="h-full rounded-full bg-accent" style="width: 55%">
+                </div>
+              </div>
+            </div>
+            <div>
+              <div
+                class="mb-1 flex items-center justify-between font-mono text-[13px]"
+              >
+                <span class="text-primary">内存余量</span>
+                <span class="text-accent">35%</span>
+              </div>
+              <div class="h-2 overflow-hidden rounded-full bg-surface">
+                <div
+                  class="h-full rounded-full bg-accent/70"
+                  style="width: 35%"
+                >
+                </div>
+              </div>
+            </div>
+            <div>
+              <div
+                class="mb-1 flex items-center justify-between font-mono text-[13px]"
+              >
+                <span class="text-primary">质量加分</span>
+                <span class="text-accent">~10%</span>
+              </div>
+              <div class="h-2 overflow-hidden rounded-full bg-surface">
+                <div
+                  class="h-full rounded-full bg-accent/50"
+                  style="width: 10%"
+                >
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="space-y-4">
+          <!-- Speed -->
+          <div class="rounded-lg border border-edge bg-surface-card p-4">
+            <h3 class="mb-2 font-mono text-sm text-accent">速度评分（55% 权重）</h3>
+            <p class="mb-2 text-sm leading-relaxed text-secondary">
+              根据 GPU 内存带宽和模型 VRAM 占用估算每秒处理 token 数：
+            </p>
+            <div class="overflow-x-auto rounded-md bg-surface p-3">
+              <pre
+                class="font-mono text-[13px] leading-relaxed text-secondary"
+                set:html={codeSpeed}
+              />
+            </div>
+          </div>
+
+          <!-- Memory headroom -->
+          <div class="rounded-lg border border-edge bg-surface-card p-4">
+            <h3 class="mb-2 font-mono text-sm text-accent">内存余量（35% 权重）</h3>
+            <p class="mb-2 text-sm leading-relaxed text-secondary">
+              模型占用可用内存的比例。使用越低 = 上下文、批处理和其他进程的空间越大：
+            </p>
+            <div class="overflow-x-auto rounded-md bg-surface p-3">
+              <pre
+                class="font-mono text-[13px] leading-relaxed text-secondary"
+                set:html={codeMemory}
+              />
+            </div>
+          </div>
+
+          <!-- Quality bonus -->
+          <div class="rounded-lg border border-edge bg-surface-card p-4">
+            <h3 class="mb-2 font-mono text-sm text-accent">质量加分（约 10%）</h3>
+            <p class="text-sm leading-relaxed text-secondary">
+              较大模型的小幅加分，因为它们通常能产生更好的输出。上限为 15 分，
+              以防止该因素主导评分：
+            </p>
+            <div class="mt-2 overflow-x-auto rounded-md bg-surface p-3">
+              <pre
+                class="font-mono text-[13px] leading-relaxed text-secondary"
+                set:html={codeQuality}
+              />
+            </div>
+          </div>
+
+          <!-- Tight fit -->
+          <div class="rounded-lg border border-edge bg-surface-card p-4">
+            <h3 class="mb-2 font-mono text-sm text-accent">紧适配惩罚</h3>
+            <p class="text-sm leading-relaxed text-secondary">
+              如果模型勉强适配内存（状态为"紧适配"），总分将乘以 <span class="font-mono text-primary">0.65</span>。
+              这会惩罚那些虽然技术上有空间但会在交换和上下文管理中遇到困难的模型。
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Grade Scale -->
+      <section>
+        <h2 class="mb-3 font-pixel text-base text-primary">评级等级</h2>
+        <p class="mb-3 text-base leading-relaxed text-secondary">
+          最终评分映射到状态标签：
+        </p>
+        <div class="overflow-x-auto rounded-lg border border-edge">
+          <table class="w-full text-base">
+            <thead>
+              <tr
+                class="border-b border-edge bg-surface-card text-left text-xs uppercase tracking-wider text-muted"
+              >
+                <th class="px-4 py-2.5">状态</th>
+                <th class="px-4 py-2.5">分数</th>
+                <th class="px-4 py-2.5">含义</th>
+              </tr>
+            </thead>
+            <tbody class="text-sm">
+              <tr class="border-b border-edge/50 bg-surface-card/50">
+                <td
+                  class="px-4 py-2 font-mono text-sm font-medium uppercase tracking-wider"
+                  style="color: #22c55e">运行极佳</td
+                >
+                <td class="px-4 py-2 font-mono text-secondary">85–100</td>
+                <td class="px-4 py-2 text-secondary"
+                  >快速推理，充足余量</td
+                >
+              </tr>
+              <tr class="border-b border-edge/50">
+                <td
+                  class="px-4 py-2 font-mono text-sm font-medium uppercase tracking-wider"
+                  style="color: #4ade80">运行良好</td
+                >
+                <td class="px-4 py-2 font-mono text-secondary">70–84</td>
+                <td class="px-4 py-2 text-secondary"
+                  >速度不错，适配舒适</td
+                >
+              </tr>
+              <tr class="border-b border-edge/50 bg-surface-card/50">
+                <td
+                  class="px-4 py-2 font-mono text-sm font-medium uppercase tracking-wider"
+                  style="color: #a3e635">尚可</td
+                >
+                <td class="px-4 py-2 font-mono text-secondary">55–69</td>
+                <td class="px-4 py-2 text-secondary">可用但不理想</td>
+              </tr>
+              <tr class="border-b border-edge/50">
+                <td
+                  class="px-4 py-2 font-mono text-sm font-medium uppercase tracking-wider"
+                  style="color: #f59e0b">紧适配</td
+                >
+                <td class="px-4 py-2 font-mono text-secondary">40–54</td>
+                <td class="px-4 py-2 text-secondary"
+                  >速度慢，上下文窗口受限</td
+                >
+              </tr>
+              <tr class="border-b border-edge/50 bg-surface-card/50">
+                <td
+                  class="px-4 py-2 font-mono text-sm font-medium uppercase tracking-wider"
+                  style="color: #f97316">勉强运行</td
+                >
+                <td class="px-4 py-2 font-mono text-secondary">20–39</td>
+                <td class="px-4 py-2 text-secondary">输出非常慢</td
+                >
+              </tr>
+              <tr>
+                <td
+                  class="px-4 py-2 font-mono text-sm font-medium uppercase tracking-wider"
+                  style="color: #ef4444">过于沉重</td
+                >
+                <td class="px-4 py-2 font-mono text-secondary">0–19</td>
+                <td class="px-4 py-2 text-secondary"
+                  >无法适配您的内存</td
+                >
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- Can/Tight/Cannot logic -->
+      <section>
+        <h2 class="mb-3 font-pixel text-base text-primary">适配分类</h2>
+        <p class="mb-3 text-base leading-relaxed text-secondary">
+          在评分之前，我们根据内存情况将每个模型分类为以下三种状态之一：
+        </p>
+        <div class="space-y-2">
+          <div
+            class="flex items-start gap-3 rounded-lg border border-can-run/20 bg-can-run/5 p-3"
+          >
+            <span class="mt-0.5 font-pixel text-sm text-can-run">可运行</span>
+            <div class="text-sm text-secondary">
+              <p>
+                <strong class="text-primary">Apple Silicon：</strong> 模型使用 ≤
+                52.5% 的统一内存（75% 可用 × 70%）
+              </p>
+              <p class="mt-1">
+                <strong class="text-primary">独立 GPU：</strong> 模型使用 ≤
+                85% 的 VRAM
+              </p>
+            </div>
+          </div>
+          <div
+            class="flex items-start gap-3 rounded-lg border border-maybe/20 bg-maybe/5 p-3"
+          >
+            <span class="mt-0.5 font-pixel text-sm text-maybe">紧适配</span>
+            <div class="text-sm text-secondary">
+              <p>
+                <strong class="text-primary">Apple Silicon：</strong> 模型使用 52.5%–75%
+                的统一内存
+              </p>
+              <p class="mt-1">
+                <strong class="text-primary">独立 GPU：</strong> 模型使用 85%–110%
+                的 VRAM
+              </p>
+            </div>
+          </div>
+          <div
+            class="flex items-start gap-3 rounded-lg border border-cannot-run/20 bg-cannot-run/5 p-3"
+          >
+            <span class="mt-0.5 font-pixel text-sm text-cannot-run"
+              >无法运行</span
+            >
+            <p class="text-sm text-secondary">
+              模型超出可用内存——无法加载或会交换到磁盘，导致无法使用。
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Tokens per second estimation -->
+      <section>
+        <h2 class="mb-3 font-pixel text-base text-primary">每秒 Token 数估算</h2>
+        <p class="mb-3 text-base leading-relaxed text-secondary">
+          我们使用简单的带宽受限模型来估算推理速度。LLM 推理几乎完全受限于从
+          内存读取权重的速度——计算极少成为瓶颈。
+        </p>
+        <div class="rounded-lg border border-accent/20 bg-accent/5 p-4">
+          <p class="text-center font-mono text-sm text-primary">
+            tok/s &asymp; <span class="text-accent"
+              >Memory bandwidth (GB/s)</span
+            > &div; <span class="text-accent">Model VRAM (GB)</span> &times; <span
+              class="text-accent">Efficiency</span
+            >
+          </p>
+        </div>
+        <p class="mt-3 text-base leading-relaxed text-secondary">
+          效率系数为独立 GPU 的 <span class="font-mono text-primary">0.70</span> 和
+          Apple Silicon 的 <span class="font-mono text-primary">0.65</span>
+          （统一内存的开销略高）。这给出了一个保守的估算——实际性能可能因批次大小、
+          上下文长度和量化格式而有 ±20% 的差异。
+        </p>
+      </section>
+
+      <!-- Data Sources -->
+      <section>
+        <h2 class="mb-3 font-pixel text-base text-primary">数据来源</h2>
+        <p class="mb-3 text-base leading-relaxed text-secondary">
+          模型信息从多个来源收集并人工整理：
+        </p>
+        <div class="space-y-2 font-mono text-sm">
+          <div class="flex items-start gap-2 text-secondary">
+            <span class="text-accent">&rsaquo;</span>
+            <div>
+              <a
+                href="https://huggingface.co"
+                target="_blank"
+                rel="noopener"
+                class="text-accent underline decoration-accent/30 underline-offset-2 hover:decoration-accent"
+                >HuggingFace API</a
+              >
+              — 下载量、点赞数和模型元数据。在构建时通过 API 获取。
+            </div>
+          </div>
+          <div class="flex items-start gap-2 text-secondary">
+            <span class="text-accent">&rsaquo;</span>
+            <div>
+              <a
+                href="https://ollama.com/library"
+                target="_blank"
+                rel="noopener"
+                class="text-accent underline decoration-accent/30 underline-offset-2 hover:decoration-accent"
+                >Ollama Library</a
+              >
+              — 通过 Ollama 分发的模型的拉取次数和可用标签/变体。
+            </div>
+          </div>
+          <div class="flex items-start gap-2 text-secondary">
+            <span class="text-accent">&rsaquo;</span>
+            <span
+              >模型卡片、论文和官方公告，用于获取参数量、架构详情和上下文长度。</span
+            >
+          </div>
+          <div class="flex items-start gap-2 text-secondary">
+            <span class="text-accent">&rsaquo;</span>
+            <span
+              >来自官方供应商数据表（NVIDIA、AMD、Intel、Apple）的 GPU 规格，包含 VRAM 和带宽数据。</span
+            >
+          </div>
+        </div>
+      </section>
+
+      <!-- HuggingFace stats fetch -->
+      <section>
+        <h2 class="mb-3 font-pixel text-base text-primary">HuggingFace 统计数据</h2>
+        <p class="mb-3 text-base leading-relaxed text-secondary">
+          我们在构建时通过 HuggingFace 的公共 API 获取下载量和点赞数：
+        </p>
+        <div class="overflow-x-auto rounded-md bg-surface p-3">
+          <pre
+            class="font-mono text-[13px] leading-relaxed text-secondary"
+            set:html={codeHF}
+          />
+        </div>
+      </section>
+
+      <!-- Apple Silicon note -->
+      <section>
+        <h2 class="mb-3 font-pixel text-base text-primary">Apple Silicon：统一内存</h2>
+        <p class="text-base leading-relaxed text-secondary">
+          Apple Silicon Mac 在 CPU 和 GPU 之间共享内存（统一内存架构）。这意味着
+          模型最多可使用约 75% 的总 RAM——远多于受限于 VRAM 的独立 GPU。配备 36 GB
+          内存的 MacBook Pro 可以运行需要约 27 GB 的模型，而配备 8 GB GPU 的 PC
+          则无法做到。我们在计算中通过将 Apple Silicon 视为单个内存池（可用上限为 75%）
+          来考虑这一点。
+        </p>
+      </section>
+
+      <!-- Privacy -->
+      <section>
+        <h2 class="mb-3 font-pixel text-base text-primary">隐私与透明</h2>
+        <p class="text-base leading-relaxed text-secondary">
+          所有硬件检测和评分都在您的浏览器中完成。不会向任何服务器发送数据。
+          GPU 名称、RAM 和基准测试结果绝不会离开您的设备。本网站使用 <a
+            href="https://astro.build"
+            target="_blank"
+            rel="noopener"
+            class="text-accent underline decoration-accent/30 underline-offset-2 hover:decoration-accent"
+            >Astro</a
+          > 构建，在不需要 JavaScript 的页面上不加载任何 JavaScript。
+        </p>
+      </section>
+    </div>
+
+    <Footer />
+  </main>
+</Layout>

@@ -1,0 +1,228 @@
+---
+import Layout from "@/layouts/Layout.astro";
+import NavHeader from "../components/NavHeader.astro";
+import Footer from "../components/Footer.astro";
+import IconLicense from "@/icons/license.svg";
+import IconCheck from "@/icons/check.svg";
+import { ALL_LICENSES, LICENSE_BY_ID, type LicenseInfo } from "@/data/licenses";
+import { models, getLicenseTier } from "@/data/models";
+
+export function getStaticPaths() {
+  return ALL_LICENSES.map((license) => ({
+    params: { id: license.id },
+  }));
+}
+
+const { id } = Astro.params;
+const license = LICENSE_BY_ID.get(id) as LicenseInfo;
+
+const tierLabel = license.tier === "open" ? "开放" : license.tier === "partial" ? "部分" : "受限";
+const tierColors = license.tier === "open"
+  ? "border-emerald-400/30 bg-emerald-400/10 text-emerald-400"
+  : license.tier === "partial"
+    ? "border-amber-400/30 bg-amber-400/10 text-amber-400"
+    : "border-orange-400/30 bg-orange-400/10 text-orange-400";
+const tierDot = license.tier === "open"
+  ? "bg-emerald-400"
+  : license.tier === "partial"
+    ? "bg-amber-400"
+    : "bg-orange-400";
+
+const licenseModels = models.filter((m) => m.license === license.name);
+---
+
+<Layout
+  title={`${license.name} License — CanIRun.ai`}
+  description={`${license.fullName}: ${license.summary} See what you can and can't do with ${license.name}-licensed AI models.`}
+>
+  <NavHeader />
+  <main class="mx-auto max-w-3xl px-4 py-12 sm:px-6">
+    <!-- 返回链接 -->
+    <a
+      href="/"
+      class="mb-8 inline-flex items-center gap-1.5 font-mono text-[13px] text-muted transition-colors hover:text-accent"
+    >
+      <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><polyline points="12 19 5 12 12 5"/></svg>
+      Back to models
+    </a>
+
+    <!-- 头部 -->
+    <header class="mb-10">
+      <div class="flex items-start gap-3">
+        <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg border border-edge bg-surface-card">
+          <IconLicense class="h-6 w-6 text-accent" />
+        </div>
+        <div>
+          <div class="flex flex-wrap items-center gap-2">
+            <h1 class="font-pixel text-2xl tracking-tight text-accent sm:text-3xl">{license.name}</h1>
+            <span class={`inline-flex items-center gap-1.5 rounded border px-2 py-0.5 font-mono text-xs ${tierColors}`}>
+              <span class={`h-1.5 w-1.5 rounded-full ${tierDot}`}></span>
+              {tierLabel}
+            </span>
+          </div>
+          <p class="mt-0.5 font-mono text-sm text-muted">{license.fullName}</p>
+        </div>
+      </div>
+      <p class="mt-4 text-base leading-relaxed text-secondary">
+        {license.summary}
+      </p>
+    </header>
+
+    <div class="space-y-8">
+      <!-- 商用横幅 -->
+      {license.commercialUse ? (
+        <div class="flex items-center gap-3 rounded-lg border border-emerald-400/20 bg-emerald-400/5 p-4">
+          <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-emerald-400/30 bg-emerald-400/10">
+            <IconCheck class="h-4 w-4 text-emerald-400" />
+          </div>
+          <div>
+            <p class="font-mono text-sm font-medium text-emerald-400">允许商用</p>
+            <p class="mt-0.5 text-[13px] text-secondary">You can use models under this license in commercial products and services.</p>
+          </div>
+        </div>
+      ) : (
+        <div class="flex items-center gap-3 rounded-lg border border-orange-400/20 bg-orange-400/5 p-4">
+          <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-orange-400/30 bg-orange-400/10">
+            <svg class="h-4 w-4 text-orange-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </div>
+          <div>
+            <p class="font-mono text-sm font-medium text-orange-400">限制商用</p>
+            <p class="mt-0.5 text-[13px] text-secondary">This license does not allow unrestricted commercial use. Check the conditions below.</p>
+          </div>
+        </div>
+      )}
+
+      <!-- 权限 -->
+      <section>
+        <h2 class="mb-3 flex items-center gap-2 font-pixel text-base text-primary">
+          <span class="flex h-6 w-6 items-center justify-center rounded bg-emerald-400/10">
+            <IconCheck class="h-3.5 w-3.5 text-emerald-400" />
+          </span>
+          What you can do
+        </h2>
+        <div class="space-y-2">
+          {license.permissions.map((p) => {
+            const [title, ...rest] = p.split(" — ");
+            const desc = rest.join(" — ");
+            return (
+              <div class="flex items-start gap-3 rounded-lg border border-edge bg-surface-card p-3">
+                <IconCheck class="mt-0.5 h-4 w-4 shrink-0 text-emerald-400" />
+                <div>
+                  <span class="font-mono text-sm text-primary">{title}</span>
+                  {desc && <p class="mt-0.5 text-[13px] leading-relaxed text-secondary">{desc}</p>}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </section>
+
+      <!-- 条件 -->
+      <section>
+        <h2 class="mb-3 flex items-center gap-2 font-pixel text-base text-primary">
+          <span class="flex h-6 w-6 items-center justify-center rounded bg-amber-400/10">
+            <svg class="h-3.5 w-3.5 text-amber-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          </span>
+          条件
+        </h2>
+        <div class="space-y-2">
+          {license.conditions.map((c) => {
+            const [title, ...rest] = c.split(" — ");
+            const desc = rest.join(" — ");
+            return (
+              <div class="flex items-start gap-3 rounded-lg border border-edge bg-surface-card p-3">
+                <svg class="mt-0.5 h-4 w-4 shrink-0 text-amber-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                <div>
+                  <span class="font-mono text-sm text-primary">{title}</span>
+                  {desc && <p class="mt-0.5 text-[13px] leading-relaxed text-secondary">{desc}</p>}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </section>
+
+      <!-- 限制 -->
+      <section>
+        <h2 class="mb-3 flex items-center gap-2 font-pixel text-base text-primary">
+          <span class="flex h-6 w-6 items-center justify-center rounded bg-red-400/10">
+            <svg class="h-3.5 w-3.5 text-red-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </span>
+          What you cannot do
+        </h2>
+        <div class="space-y-2">
+          {license.limitations.map((l) => {
+            const [title, ...rest] = l.split(" — ");
+            const desc = rest.join(" — ");
+            return (
+              <div class="flex items-start gap-3 rounded-lg border border-edge bg-surface-card p-3">
+                <svg class="mt-0.5 h-4 w-4 shrink-0 text-red-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                <div>
+                  <span class="font-mono text-sm text-primary">{title}</span>
+                  {desc && <p class="mt-0.5 text-[13px] leading-relaxed text-secondary">{desc}</p>}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </section>
+
+      <!-- 注意 -->
+      {license.note && (
+        <div class="rounded-lg border border-maybe/30 bg-maybe/5 p-4">
+          <p class="text-sm leading-relaxed text-secondary">
+            <span class="font-pixel text-xs text-maybe">注意</span> — {license.note}
+          </p>
+        </div>
+      )}
+
+      <!-- 完整许可文本链接 -->
+      <section>
+        <a
+          href={license.url}
+          target="_blank"
+          rel="noopener noreferrer"
+          class="inline-flex items-center gap-2 rounded-lg border border-edge bg-surface-card px-4 py-3 font-mono text-sm text-secondary transition-colors hover:border-accent/30 hover:text-accent"
+        >
+          <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+          Read the full license text
+        </a>
+      </section>
+
+      <!-- 使用此许可的模型 -->
+      {licenseModels.length > 0 && (
+        <section>
+          <h2 class="mb-3 font-pixel text-base text-primary">
+            使用此许可的模型
+            <span class="ml-1.5 font-mono text-xs text-muted">({licenseModels.length})</span>
+          </h2>
+          <div class="grid gap-2 sm:grid-cols-2">
+            {licenseModels.map((m) => (
+              <a
+                href={`/model/${m.id}`}
+                class="flex items-center justify-between rounded-lg border border-edge bg-surface-card p-3 transition-colors hover:border-accent/30 hover:bg-surface-hover"
+              >
+                <div>
+                  <p class="font-mono text-sm text-primary">{m.name}</p>
+                  <p class="mt-0.5 text-[12px] text-muted">{m.provider} · {m.params}</p>
+                </div>
+                <svg class="h-4 w-4 shrink-0 text-muted" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+              </a>
+            ))}
+          </div>
+        </section>
+      )}
+
+      <!-- 免责声明 -->
+      <div class="rounded-lg border border-edge-subtle bg-surface-raised p-4">
+        <p class="text-[13px] leading-relaxed text-muted">
+          This is a simplified summary for informational purposes only. It is not legal advice. Always read the
+          <a href={license.url} target="_blank" rel="noopener noreferrer" class="text-accent underline decoration-accent/30 underline-offset-2 hover:decoration-accent">full license text</a>
+          before making decisions about using a model in your project.
+        </p>
+      </div>
+    </div>
+
+    <Footer />
+  </main>
+</Layout>

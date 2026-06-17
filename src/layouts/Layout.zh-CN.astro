@@ -1,0 +1,186 @@
+---
+import { ClientRouter } from "astro:transitions";
+import "@/styles/global.css";
+
+interface Props {
+  title?: string;
+  description?: string;
+  image?: string;
+  type?: string;
+}
+
+const {
+  title = "CanIRun.ai — 你的设备能跑 AI 模型吗？",
+  description = "检测你的硬件配置，找出哪些 AI 模型可以在本地运行。浏览器端 GPU、CPU 和内存分析。",
+  image = "/og/home.jpg",
+  type = "website",
+} = Astro.props;
+
+const canonicalURL = new URL(Astro.url.pathname, Astro.site);
+const ogImageURL = new URL(image, Astro.site);
+---
+
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="canonical" href={canonicalURL.href} />
+
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <meta name="theme-color" content="#08080a" />
+    <meta name="robots" content="index, follow" />
+    <meta name="author" content="midudev" />
+    <meta name="generator" content={Astro.generator} />
+
+    <script is:inline>
+      (function(){
+        function applyTheme(){
+          var t=localStorage.getItem("theme");
+          if(t==="light"||(!t&&matchMedia("(prefers-color-scheme: light)").matches)){
+            document.documentElement.classList.add("light");
+            document.querySelector('meta[name="theme-color"]').setAttribute("content","#ffffff");
+          } else {
+            document.documentElement.classList.remove("light");
+            document.querySelector('meta[name="theme-color"]').setAttribute("content","#08080a");
+          }
+        }
+        applyTheme();
+        document.addEventListener("astro:after-swap",applyTheme);
+      })();
+    </script>
+
+    <meta property="og:type" content={type} />
+    <meta property="og:url" content={canonicalURL.href} />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:image" content={ogImageURL.href} />
+    <meta property="og:image:type" content="image/jpeg" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:site_name" content="CanIRun.ai" />
+    <meta property="og:locale" content="zh_CN" />
+
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:url" content={canonicalURL.href} />
+    <meta name="twitter:title" content={title} />
+    <meta name="twitter:description" content={description} />
+    <meta name="twitter:image" content={ogImageURL.href} />
+    <meta name="twitter:creator" content="@midudev" />
+    <meta name="twitter:site" content="@midudev" />
+
+    <ClientRouter />
+    <slot name="head" />
+  </head>
+  <body class="min-h-screen bg-surface text-primary font-sans">
+    <slot />
+    <script>
+      function initTooltips() {
+        let popup: HTMLDivElement | null = null;
+        let arrow: HTMLDivElement | null = null;
+        let currentTrigger: HTMLElement | null = null;
+        let hideTimeout: ReturnType<typeof setTimeout> | null = null;
+
+        function show(trigger: HTMLElement) {
+          const text = trigger.dataset.tooltip;
+          if (!text) return;
+
+          if (hideTimeout) { clearTimeout(hideTimeout); hideTimeout = null; }
+          if (currentTrigger === trigger && popup) return;
+          hide(true);
+
+          currentTrigger = trigger;
+          const pos = trigger.dataset.tooltipPos === "bottom" ? "bottom" : "top";
+
+          popup = document.createElement("div");
+          popup.className = `tooltip-popup${pos === "bottom" ? " tooltip-bottom" : ""}`;
+          popup.setAttribute("role", "tooltip");
+          popup.textContent = text;
+
+          arrow = document.createElement("div");
+          arrow.className = `tooltip-arrow tooltip-arrow-${pos === "bottom" ? "bottom" : "top"}`;
+          popup.appendChild(arrow);
+
+          document.body.appendChild(popup);
+
+          const rect = trigger.getBoundingClientRect();
+          const popRect = popup.getBoundingClientRect();
+          let left = rect.left + rect.width / 2 - popRect.width / 2;
+          left = Math.max(8, Math.min(left, window.innerWidth - popRect.width - 8));
+
+          let top: number;
+          if (pos === "bottom") {
+            top = rect.bottom + 8;
+          } else {
+            top = rect.top - popRect.height - 8;
+            if (top < 8) {
+              top = rect.bottom + 8;
+              popup.classList.add("tooltip-bottom");
+              arrow.className = "tooltip-arrow tooltip-arrow-bottom";
+            }
+          }
+
+          popup.style.left = `${left}px`;
+          popup.style.top = `${top}px`;
+
+          const arrowLeft = rect.left + rect.width / 2 - left;
+          arrow.style.left = `${arrowLeft}px`;
+          arrow.style.transform = "translateX(-50%)";
+
+          requestAnimationFrame(() => popup?.classList.add("visible"));
+        }
+
+        function hide(immediate = false) {
+          if (!popup) return;
+          const el = popup;
+          currentTrigger = null;
+
+          if (immediate) {
+            el.remove();
+            popup = null;
+            arrow = null;
+            return;
+          }
+
+          el.classList.remove("visible");
+          const cleanup = () => { el.remove(); if (popup === el) { popup = null; arrow = null; } };
+          el.addEventListener("transitionend", cleanup, { once: true });
+          setTimeout(cleanup, 250);
+        }
+
+        document.addEventListener("mouseover", (e) => {
+          const trigger = (e.target as Element).closest<HTMLElement>("[data-tooltip]");
+          if (trigger) show(trigger);
+        });
+
+        document.addEventListener("mouseout", (e) => {
+          const trigger = (e.target as Element).closest<HTMLElement>("[data-tooltip]");
+          if (!trigger) return;
+          const related = e.relatedTarget as Element | null;
+          if (!trigger.contains(related)) {
+            hideTimeout = setTimeout(() => hide(), 80);
+          }
+        });
+
+        document.addEventListener("focusin", (e) => {
+          const trigger = (e.target as Element).closest<HTMLElement>("[data-tooltip]");
+          if (trigger) show(trigger);
+        });
+
+        document.addEventListener("focusout", (e) => {
+          const trigger = (e.target as Element).closest<HTMLElement>("[data-tooltip]");
+          if (trigger) hide();
+        });
+
+        document.addEventListener("keydown", (e) => {
+          if (e.key === "Escape") hide();
+        });
+      }
+
+      initTooltips();
+      document.addEventListener("astro:after-swap", initTooltips);
+    </script>
+  </body>
+</html>

@@ -1,0 +1,32 @@
+---
+import Layout from "@/layouts/Layout.astro";
+import NavHeader from "./components/NavHeader.astro";
+import ModelListContent from "./components/ModelListContent.astro";
+---
+
+<Layout>
+  <Fragment slot="head">
+    <script type="application/ld+json" set:html={JSON.stringify({
+      "@context": "https://schema.org",
+      "@type": "WebApplication",
+      "name": "CanIRun.ai",
+      "url": "https://canirun.ai",
+      "description": "Detect your hardware and find out which AI models you can run locally. GPU, CPU, and RAM analysis in your browser.",
+      "applicationCategory": "DeveloperApplication",
+      "operatingSystem": "Web Browser",
+      "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+      "creator": { "@type": "Person", "name": "midudev", "url": "https://midu.dev" }
+    })}></script>
+  </Fragment>
+  <NavHeader />
+  <ModelListContent>
+    <header slot="header" class="mb-10 text-center">
+      <h1 class="font-pixel text-3xl tracking-tight text-accent sm:text-4xl">
+        我能本地运行 AI 吗？
+      </h1>
+      <p class="mt-2 text-base text-muted">
+        找出你的设备真正能运行哪些 AI 模型。
+      </p>
+    </header>
+  </ModelListContent>
+</Layout>
